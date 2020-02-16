@@ -62,7 +62,7 @@ class TrainPipeline():
         self.epochs = 5                                         # num of train_steps for each update
         self.kl_targ = 0.02
         self.check_freq = 50                                    # 每50次训练后，评估一下性能
-        self.game_batch_num = 1500                              # 训练总次数
+        self.game_batch_num = 2000                              # 训练总次数
         self.best_win_ratio = 0.0                               # 当前的最佳胜率，从0开始
         self.pure_mcts_playout_num = 1000                       # 纯MCTS（电脑对手）：每次从1000次模拟开始
 
@@ -147,7 +147,7 @@ class TrainPipeline():
                     axis=1)
             )
 
-            if kl > self.kl_targ * 4:       # early stopping if D_KL diverges badly
+            if kl > self.kl_targ * 4:       # early stopping if D_KL diverges badly: >0.08
                 print("kl = ", kl, " early stopping loop ...")
                 break
 
@@ -212,7 +212,7 @@ class TrainPipeline():
                 print("batch i:{}, episode_len:{}".format(i+1, self.episode_len))
                 # input("press to cotinue ...")
 
-                print(len(self.data_buffer), self.batch_size)
+                # print(len(self.data_buffer), self.batch_size)
                 if len(self.data_buffer) > self.batch_size:
                     # 策略更新：
                     # print("data_buffer len=", len(self.data_buffer))

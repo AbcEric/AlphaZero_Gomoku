@@ -2,13 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d55ba1c4-ee44-4a97-b418-b39077095e54" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/best_policy.model" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/best_policy_6_6_4_eric.model" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/current_policy.model" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/human_play.py" beforeDir="false" afterPath="$PROJECT_DIR$/human_play.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mcts_alphaZero.py" beforeDir="false" afterPath="$PROJECT_DIR$/mcts_alphaZero.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/policy_value_net_keras.py" beforeDir="false" afterPath="$PROJECT_DIR$/policy_value_net_keras.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/best_policy.model" beforeDir="false" afterPath="$PROJECT_DIR$/best_policy.model" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/current_policy.model" beforeDir="false" afterPath="$PROJECT_DIR$/current_policy.model" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -113,22 +108,22 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="2522" height="482" key="GridCell.Tab.0.bottom" timestamp="1581874052789">
+    <state width="2538" height="482" key="GridCell.Tab.0.bottom" timestamp="1581896085103">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2522" height="482" key="GridCell.Tab.0.bottom/0.0.2560.1440@0.0.2560.1440" timestamp="1581874052789" />
-    <state width="2522" height="482" key="GridCell.Tab.0.center" timestamp="1581874052789">
+    <state width="2538" height="482" key="GridCell.Tab.0.bottom/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
+    <state width="2538" height="482" key="GridCell.Tab.0.center" timestamp="1581896085103">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2522" height="482" key="GridCell.Tab.0.center/0.0.2560.1440@0.0.2560.1440" timestamp="1581874052789" />
-    <state width="2522" height="482" key="GridCell.Tab.0.left" timestamp="1581874052789">
+    <state width="2538" height="482" key="GridCell.Tab.0.center/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
+    <state width="2538" height="482" key="GridCell.Tab.0.left" timestamp="1581896085103">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2522" height="482" key="GridCell.Tab.0.left/0.0.2560.1440@0.0.2560.1440" timestamp="1581874052789" />
-    <state width="2522" height="482" key="GridCell.Tab.0.right" timestamp="1581874052789">
+    <state width="2538" height="482" key="GridCell.Tab.0.left/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
+    <state width="2538" height="482" key="GridCell.Tab.0.right" timestamp="1581896085103">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2522" height="482" key="GridCell.Tab.0.right/0.0.2560.1440@0.0.2560.1440" timestamp="1581874052789" />
+    <state width="2538" height="482" key="GridCell.Tab.0.right/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
     <state x="781" y="362" key="SettingsEditor" timestamp="1581824982950">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
