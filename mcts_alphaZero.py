@@ -16,6 +16,8 @@ def softmax(x):
     return probs
 
 
+# 定义N叉树的TreeNode数据结构：包含了parent和children属性，以及用于计算UCB值的visit times和quality value（Q），
+# Node需要实现增加节点、删除节点等功能，还有需要提供函数判断子节点的个数和是否有空闲的子节点位置。
 class TreeNode(object):
     """A node in the MCTS tree.
 
@@ -85,6 +87,9 @@ class TreeNode(object):
         return self._parent is None
 
 
+# 大量的计算力花费在了mcts的select与expand上，policy只占了1/8不到的时间（所以deepmind采用了5000个TPU）, 影响效率的主要因素
+# 更新mcts时使用了递归，这是慢的一个主要原因，可以考虑改写为堆栈的方式 ？？
+
 class MCTS(object):
     """An implementation of Monte Carlo Tree Search."""
 
@@ -109,7 +114,7 @@ class MCTS(object):
         State is modified in-place, so a copy must be provided.
         """
         node = self._root
-        while(1):
+        while 1:
             if node.is_leaf():
                 break
             # Greedily select next move.
@@ -136,20 +141,25 @@ class MCTS(object):
         # Update value and visit count of nodes in this traversal.
         node.update_recursive(-leaf_value)
 
+    # 这一步很花时间：需要2s左右！调用一次就会执行400次MCTS playout。
     def get_move_probs(self, state, temp=1e-3):
         """Run all playouts sequentially and return the available actions and
         their corresponding probabilities.
         state: the current game state
         temp: temperature parameter in (0, 1] controls the level of exploration
         """
+        # print("get_move_probs ...", self._n_playout, state)
         for n in range(self._n_playout):
             state_copy = copy.deepcopy(state)
             self._playout(state_copy)
-
         # calc the move probabilities based on visit counts at the root node
         act_visits = [(act, node._n_visits)
                       for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)
+
+        # MCTS算法思想：模拟的时候选择Q+u最大的节点，这是exploitation和exploration的平衡，
+        # Q对应exploitation，偏向于选择实际模拟过程中表现好的分支，u对应exploration，给访问次数少的分支一些机会，充分的探索，可能发现更好的策略。
+        # 正式下棋的时候，不再需要探索，一般我们选择visit次数最多的分支，这种选择方法相对Robust
         act_probs = softmax(1.0/temp * np.log(np.array(visits) + 1e-10))
 
         return acts, act_probs
@@ -171,6 +181,7 @@ class MCTS(object):
 class MCTSPlayer(object):
     """AI player based on MCTS"""
 
+    # c_puct ？？
     def __init__(self, policy_value_function,
                  c_puct=5, n_playout=2000, is_selfplay=0):
         self.mcts = MCTS(policy_value_function, c_puct, n_playout)
@@ -187,11 +198,15 @@ class MCTSPlayer(object):
         # the pi vector returned by MCTS as in the alphaGo Zero paper
         move_probs = np.zeros(board.width*board.height)
         if len(sensible_moves) > 0:
+            # print(board, temp)
             acts, probs = self.mcts.get_move_probs(board, temp)
             move_probs[list(acts)] = probs
             if self._is_selfplay:
                 # add Dirichlet Noise for exploration (needed for
                 # self-play training)
+
+                # 当棋盘扩大后dirichlet噪声的参数可能需要调整。根据AlphaZero论文里的描述，这个参数一般按照反比于每一步的可行move数量设置，所以棋盘扩大之后这个参数可能需要减小。
+                # 这里的0.3可能减小一些（比如到0.1）
                 move = np.random.choice(
                     acts,
                     p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs)))

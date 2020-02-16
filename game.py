@@ -152,11 +152,11 @@ class Game(object):
                 loc = i * width + j
                 p = board.states.get(loc, -1)
                 if p == player1:
-                    # print('X'.center(8), end='')
-                    print('●'.center(8), end='')
+                    print('X'.center(8), end='')
+                    # print('●'.center(8), end='')
                 elif p == player2:
-                    # print('O'.center(8), end='')
-                    print('○'.center(8), end='')
+                    print('O'.center(8), end='')
+                    # print('○'.center(8), end='')
                 else:
                     print('—'.center(8), end='')
             # print('\r\n\r\n')
@@ -174,11 +174,16 @@ class Game(object):
         players = {p1: player1, p2: player2}
         if is_shown:
             self.graphic(self.board, player1.player, player2.player)
+
         while True:
             current_player = self.board.get_current_player()
             player_in_turn = players[current_player]
+            # print("...：", player_in_turn, self.board)
+
             move = player_in_turn.get_action(self.board)
+            # print(move)
             self.board.do_move(move)
+            # print("***")
             if is_shown:
                 self.graphic(self.board, player1.player, player2.player)
             end, winner = self.board.game_end()
@@ -197,19 +202,25 @@ class Game(object):
         self.board.init_board()
         p1, p2 = self.board.players
         states, mcts_probs, current_players = [], [], []
+
         while True:
             move, move_probs = player.get_action(self.board,
                                                  temp=temp,
                                                  return_prob=1)
+            # 判断移动哪一个棋子：
+            # print("move and probs: ", move, move_probs)
+
             # store the data
             states.append(self.board.current_state())
             mcts_probs.append(move_probs)
             current_players.append(self.board.current_player)
             # perform a move
             self.board.do_move(move)
+
             if is_shown:
                 self.graphic(self.board, p1, p2)
             end, winner = self.board.game_end()
+
             if end:
                 # winner from the perspective of the current player of each state
                 winners_z = np.zeros(len(current_players))
