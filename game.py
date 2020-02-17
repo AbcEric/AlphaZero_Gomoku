@@ -143,23 +143,24 @@ class Game(object):
         print("Player", player1, "with X".rjust(3))
         print("Player", player2, "with O".rjust(3))
         print()
+
+        print("%4s" % ' ', end='')
         for x in range(width):
-            print("{0:8}".format(x), end=' ')
+            print("%8d" % x, end=' ')
+
         print('\r\n')
-        for i in range(height - 1, -1, -1):
-            print("{0:4d}".format(i), end='')
+        for i in range(height - 1, -1, -1):         # 倒序：行数从下面开始
+            print("%4d" % i, end='')
             for j in range(width):
                 loc = i * width + j
                 p = board.states.get(loc, -1)
                 if p == player1:
-                    print('X'.center(8), end='')
-                    # print('●'.center(8), end='')
+                    print("%8s" % 'X', end=' ')
                 elif p == player2:
-                    print('O'.center(8), end='')
-                    # print('○'.center(8), end='')
+                    print("%8s" % 'O', end=' ')
                 else:
-                    print('—'.center(8), end='')
-            # print('\r\n\r\n')
+                    print("%8s" % '-', end=' ')
+
             print('\r\n')
 
     def start_play(self, player1, player2, start_player=0, is_shown=1):

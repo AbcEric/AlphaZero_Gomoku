@@ -19,9 +19,10 @@ AlphaGo也是基于MCTS算法，但做了很多优化：http://www.algorithmdog.
 
 Q：
 改进：
-1。多线程：可用一个进程负责self-play和training的部分, 另外4个进程只负责self-play的部分”。喂数据应该专门开一个进程（用 Queue 储存和读取），这样 GPU 就不会经常停下来等候。
+1. 多线程：可用一个进程负责self-play和training的部分, 另外4个进程只负责self-play的部分”。喂数据应该专门开一个进程（用 Queue 储存和读取），这样 GPU 就不会经常停下来等候。
 2. 关于GPU不比CPU快这个问题，可能的原因：一是AlphaZero训练本身就有很大一部分运算是需要在cpu上进行的，频繁的在cpu和gpu之间交换数据本身也会有一定开销。（Deepmind用了很多TPU）
 其次，棋盘很小，而且我用的网络本身也很浅，所以网络forward计算这部分运算放到GPU上带来的收益可能都被额外的数据传输开销抵掉了。
+3. 评价时采用AI模型，加大n_playout作为对手，同时记录对局过程来复盘；
 
 """
 
@@ -57,7 +58,7 @@ class TrainPipeline():
         self.c_puct = 5                                         # ？
         self.buffer_size = 10000
         self.batch_size = 512                                   # mini-batch size for training
-        self.data_buffer = deque(maxlen=self.buffer_size)       # data_buffer是一个deque，设定了maxlen，满了之后新进来的就会把最老的挤出去
+        self.data_buffer = deque(maxlen=self.buffer_size)       # data_buffer是一个deque（双向队列），设定了maxlen，满了之后新进来的就会把最老的挤出去
         self.play_batch_size = 1
         self.epochs = 5                                         # num of train_steps for each update
         self.kl_targ = 0.02
@@ -81,6 +82,12 @@ class TrainPipeline():
                                       c_puct=self.c_puct,
                                       n_playout=self.n_playout,
                                       is_selfplay=1)
+
+    def show_mcts(self):
+        print("Game info: {}*{}*{}".format(self.board_width, self.board_height, self.n_in_row))
+        print("pure_mcts_playout_num= ", self.pure_mcts_playout_num)
+        print("best_win_ration= ", self.best_win_ratio)
+        print("learn_rate= ", self.learn_rate)
 
     def get_equi_data(self, play_data):
         """augment the data set by rotation and flipping
@@ -177,7 +184,7 @@ class TrainPipeline():
                         explained_var_new))
         return loss, entropy
 
-    def policy_evaluate(self, n_games=10):
+    def policy_evaluate(self, n_games=10, self_play=False):
         """
         Evaluate the trained policy by playing against the pure MCTS player
         Note: this is only for monitoring the progress of training
@@ -185,8 +192,17 @@ class TrainPipeline():
         current_mcts_player = MCTSPlayer(self.policy_value_net.policy_value_fn,
                                          c_puct=self.c_puct,
                                          n_playout=self.n_playout)
-        pure_mcts_player = MCTS_Pure(c_puct=5,
+
+        if self_play:
+            print("双手互搏进行测评，AI对手的n_playout加大一倍 ...")
+            pure_mcts_player = MCTSPlayer(self.policy_value_net.policy_value_fn,
+                                             c_puct=self.c_puct,
+                                             n_playout=int(self.n_playout*2))
+        else:
+            print("采用MCTS进行测评，n_playout为: ", self.pure_mcts_playout_num)
+            pure_mcts_player = MCTS_Pure(c_puct=5,
                                      n_playout=self.pure_mcts_playout_num)
+
         win_cnt = defaultdict(int)
         for i in range(n_games):
             winner = self.game.start_play(current_mcts_player,
@@ -194,15 +210,21 @@ class TrainPipeline():
                                           start_player=i % 2,
                                           is_shown=0)
             win_cnt[winner] += 1
+
+            print("%d-%d : winner is player %d" % (n_games, i, winner))
+
         win_ratio = 1.0*(win_cnt[1] + 0.5*win_cnt[-1]) / n_games
+
         print("num_playouts:{}, win: {}, lose: {}, tie:{}".format(
                 self.pure_mcts_playout_num,
                 win_cnt[1], win_cnt[2], win_cnt[-1]))
+
         return win_ratio
 
     def run(self):
         """run the training pipeline"""
         try:
+
             for i in range(self.game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size)
 
@@ -251,4 +273,9 @@ class TrainPipeline():
 
 if __name__ == '__main__':
     training_pipeline = TrainPipeline("best_policy.model")
+    training_pipeline.show_mcts()
+
+    # training_pipeline.policy_evaluate(n_games=5, self_play=True)
+    training_pipeline.policy_evaluate(n_games=5, self_play=False)
+
     training_pipeline.run()

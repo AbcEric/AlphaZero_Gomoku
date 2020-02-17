@@ -16,7 +16,7 @@ from policy_value_net_numpy import PolicyValueNetNumpy          # 纯numpy环境
 # from policy_value_net import PolicyValueNet  # Theano and Lasagne
 # from policy_value_net_pytorch import PolicyValueNet  # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet # Tensorflow
-# from policy_value_net_keras import PolicyValueNet               # Keras
+from policy_value_net_keras import PolicyValueNet               # Keras
 
 
 class Human(object):
@@ -54,9 +54,9 @@ def run():
     model_file = 'best_policy_8_8_5.model'
 
     # 要采用：PolicyValueNet(）
-    n = 4
-    width, height = 6, 6
-    model_file = 'current_policy.model'
+    n = 5
+    width, height = 9, 9
+    # model_file = 'current_policy.model'
     model_file = 'best_policy.model'
 
     try:
@@ -70,22 +70,27 @@ def run():
         # mcts_player = MCTSPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=400)
 
         # load the provided model (trained in Theano/Lasagne) into a MCTS player written in pure numpy
-        try:
-            policy_param = pickle.load(open(model_file, 'rb'))
-        except:
-            policy_param = pickle.load(open(model_file, 'rb'),
-                                       encoding='bytes')  # To support python3
+        if model_file != "best_policy.model":
+            try:
+                policy_param = pickle.load(open(model_file, 'rb'))
+            except:
+                policy_param = pickle.load(open(model_file, 'rb'),
+                                           encoding='bytes')  # To support python3
 
-        best_policy = PolicyValueNetNumpy(width, height, policy_param)
+            best_policy = PolicyValueNetNumpy(width, height, policy_param)
+        else:
+            # 使用自己训练的模型：非numpy方式！
+            best_policy = PolicyValueNet(width, height, model_file)
 
-        # 使用自己训练的模型：非numpy方式！
-        # best_policy = PolicyValueNet(width, height, model_file)
+        # 采用训练的AI模型作为对手：n_playout越大，水平越高，速度明显快很多！
         mcts_player = MCTSPlayer(best_policy.policy_value_fn,
                                  c_puct=5,
-                                 n_playout=400)  # set larger n_playout for better performance
+                                 n_playout=800)
+                                 # n_playout=400)
 
-        # uncomment the following line to play with pure MCTS (it's much weaker even with a larger n_playout)
-        # mcts_player = MCTS_Pure(c_puct=5, n_playout=1000)
+        # 采用MCTS作为对手：n_playout越高，水平越厉害（当n_playout=2000时，每步考虑时间就很长了，每步要5秒以上）
+        # MCTS的水平很差！基本要3000以上水平才可以。
+        # mcts_player = MCTS_Pure(c_puct=5, n_playout=3000)
 
         # human player, input your move in the format: 2,3
         human = Human()
