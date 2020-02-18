@@ -7,7 +7,7 @@ Input your move in the format: 2,3
 """
 
 from __future__ import print_function
-import pickle
+import pickle, random
 from game import Board, Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
 from mcts_alphaZero import MCTSPlayer
@@ -17,7 +17,7 @@ from policy_value_net_numpy import PolicyValueNetNumpy          # 纯numpy环境
 # from policy_value_net_pytorch import PolicyValueNet  # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet # Tensorflow
 from policy_value_net_keras import PolicyValueNet               # Keras
-
+from mytoolkit import init_logging, write_log
 
 class Human(object):
     """
@@ -86,7 +86,7 @@ def run():
         # 采用训练的AI模型作为对手：n_playout越大，水平越高，速度明显快很多！
         mcts_player = MCTSPlayer(best_policy.policy_value_fn,
                                  c_puct=5,
-                                 n_playout=800)
+                                 n_playout=2000)
                                  # n_playout=400)
 
         # 采用MCTS作为对手：n_playout越高，水平越厉害（当n_playout=2000时，每步考虑时间就很长了，每步要5秒以上）
@@ -97,11 +97,12 @@ def run():
         human = Human()
 
         # set start_player=0 for human first
-        game.start_play(human, mcts_player, start_player=1, is_shown=1)
+        game.start_play(human, mcts_player, start_player=round(random.random()), is_shown=1)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 
 if __name__ == '__main__':
+    init_logging()
     run()

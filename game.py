@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 import numpy as np
-
+from mytoolkit import write_log
 
 class Board(object):
     """board for the game"""
@@ -17,15 +17,13 @@ class Board(object):
         # key: move as location on the board,
         # value: player as pieces type
         self.states = {}
-        # need how many pieces in a row to win
-        self.n_in_row = int(kwargs.get('n_in_row', 5))
-        self.players = [1, 2]  # player1 and player2
+        self.n_in_row = int(kwargs.get('n_in_row', 5))      # need how many pieces in a row to win，缺省为5
+        self.players = [1, 2]                               # player1 and player2
 
     def init_board(self, start_player=0):
         if self.width < self.n_in_row or self.height < self.n_in_row:
-            raise Exception('board width and height can not be '
-                            'less than {}'.format(self.n_in_row))
-        self.current_player = self.players[start_player]  # start player
+            raise Exception('board width and height can not be less than ', self.n_in_row)
+        self.current_player = self.players[start_player]    # start player
         # keep available moves in a list
         self.availables = list(range(self.width * self.height))
         self.states = {}
@@ -137,6 +135,7 @@ class Game(object):
 
     def graphic(self, board, player1, player2):
         """Draw the board and show game info"""
+
         width = board.width
         height = board.height
 
@@ -165,15 +164,21 @@ class Game(object):
 
     def start_play(self, player1, player2, start_player=0, is_shown=1):
         """start a game between two players"""
+        # 人机对战：
 
-        print("start_player=", start_player)
         # is_shown = 1
+        play_steps = []
 
         if start_player not in (0, 1):
             raise Exception('start_player should be either 0 (player1 first) '
                             'or 1 (player2 first)')
+
+        # player2先走：
+        if start_player == 1:
+            play_steps.append(-1)
+
         self.board.init_board(start_player)
-        p1, p2 = self.board.players
+        p1, p2 = self.board.players             # [1, 2]玩家编号
         player1.set_player_ind(p1)
         player2.set_player_ind(p2)
         players = {p1: player1, p2: player2}
@@ -187,7 +192,9 @@ class Game(object):
             # print("...：", player_in_turn, self.board)
 
             move = player_in_turn.get_action(self.board)
-            # print(move)
+            play_steps.append(move)
+            print("player %d: %d" % (current_player, move))
+
             self.board.do_move(move)
             # print("***")
             if is_shown:
@@ -196,9 +203,14 @@ class Game(object):
             if end:
                 if is_shown:
                     if winner != -1:
-                        print("Game end. Winner is", players[winner])
+                        print("Game end. Winner is", players[winner], winner)
                     else:
                         print("Game end. Tie")
+
+                # 将int列表转换为str列表后，才能用join连接：
+                print("winner = ", winner, players[winner])
+                write_log("play_steps= %s  winner= %d" % (" ".join(map(str, play_steps)), winner), show=True)
+
                 return winner
 
     def start_self_play(self, player, is_shown=0, temp=1e-3):

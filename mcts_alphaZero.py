@@ -149,20 +149,19 @@ class MCTS(object):
         temp: temperature parameter in (0, 1] controls the level of exploration
         """
         # print("get_move_probs ...", self._n_playout, state)
+        print("n_playout=", self._n_playout)            # 800?
+
         for n in range(self._n_playout):
             state_copy = copy.deepcopy(state)
             self._playout(state_copy)
+
         # calc the move probabilities based on visit counts at the root node
         act_visits = [(act, node._n_visits)
                       for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)
-
-        # MCTS算法思想：模拟的时候选择Q+u最大的节点，这是exploitation和exploration的平衡，
-        # Q对应exploitation，偏向于选择实际模拟过程中表现好的分支，u对应exploration，给访问次数少的分支一些机会，充分的探索，可能发现更好的策略。
-        # 正式下棋的时候，不再需要探索，一般我们选择visit次数最多的分支，这种选择方法相对Robust
-
-        # temp有什么影响？？
+        # temp=1，返回act_probs概率相近的更多，有更多的选择，当temp=0.1时，集中在少数，基本不再探索不同的走法！
         act_probs = softmax(1.0/temp * np.log(np.array(visits) + 1e-10))
+        # print("prob(temp=1):", act_probs[act_probs>0.1])
 
         return acts, act_probs
 
@@ -194,29 +193,36 @@ class MCTSPlayer(object):
     def reset_player(self):
         self.mcts.update_with_move(-1)
 
+    # 关键步骤：
     def get_action(self, board, temp=1e-3, return_prob=0):
         sensible_moves = board.availables
+
         # the pi vector returned by MCTS as in the alphaGo Zero paper
         move_probs = np.zeros(board.width*board.height)
         if len(sensible_moves) > 0:
-            # print(board, temp)
             acts, probs = self.mcts.get_move_probs(board, temp)
             move_probs[list(acts)] = probs
-            if self._is_selfplay:
-                # add Dirichlet Noise for exploration (needed for
-                # self-play training)
 
+            # MCTS算法思想：模拟时选择Q+u最大的节点，这是exploitation和exploration的平衡，
+            # Q对应exploitation，实际模拟过程中表现好的分支，u对应exploration，充分探索访问次数少的分支，发现是否有更好的策略。
+            # 正式下棋的时候，不再需要探索，一般我们选择visit次数最多的分支，这种选择方法相对Robust
+
+            if self._is_selfplay:
+                # add Dirichlet Noise for exploration (needed for self-play training)
                 # 当棋盘扩大后dirichlet噪声的参数可能需要调整。根据AlphaZero论文里的描述，这个参数一般按照反比于每一步的可行move数量设置，所以棋盘扩大之后这个参数可能需要减小。
                 # 这里的0.3可能减小一些（比如到0.1）
+                # dirichlet为狄利克雷分布：应用于构建混合模型，以处理高维的聚类和特征赋权等非监督学习问题？
                 move = np.random.choice(
                     acts,
-                    p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs)))
+                    # p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs)))
+                    p=0.75*probs + 0.25*np.random.dirichlet(0.2*np.ones(len(probs)))
                 )
                 # update the root node and reuse the search tree
                 self.mcts.update_with_move(move)
             else:
                 # with the default temp=1e-3, it is almost equivalent
                 # to choosing the move with the highest prob
+                # 如果用训练的模型进行相互对战：由于都是选prob最大的走法，会导致相同的局面双方走法完全相同！
                 move = np.random.choice(acts, p=probs)
                 # reset the root node
                 self.mcts.update_with_move(-1)

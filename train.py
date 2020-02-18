@@ -39,31 +39,7 @@ from mcts_alphaZero import MCTSPlayer
 # from policy_value_net_pytorch import PolicyValueNet           # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet        # Tensorflow
 from policy_value_net_keras import PolicyValueNet               # Keras
-
-__all__ = ['print_time']
-
-
-def print_time(f):
-    """ 装饰器：记录函数运行时间
-        from print_time import print_time as pt
-
-        @pt
-        def work(...):
-            print('work is running')
-
-        word()
-        # work is running
-        # --> RUN TIME: <work> : 2.8371810913085938e-05
-
-    """
-    def fi(*args, **kwargs):
-        s = time.time()
-        res = f(*args, **kwargs)
-        print('--> RUN TIME: <%s> : %6.2f' % (f.__name__, time.time() - s))
-        return res
-
-    return fi
-
+from mytoolkit import init_logging, write_log, print_time
 
 class TrainPipeline():
     def __init__(self, init_model=None, best_model="best_policy.model"):
@@ -78,8 +54,8 @@ class TrainPipeline():
 
         # training params
         self.learn_rate = 2e-3
-        self.lr_multiplier = 0.2                                # adaptively adjust the learning rate based on KL ？
-        self.temp = 1.0                                         # the temperature param ？是否去尝试新走法
+        self.lr_multiplier = 0.09                                # adaptively adjust the learning rate based on KL ？
+        self.temp = 1.0                                         # temperature parameter，取值在(0, 1]，控制explorati级别，是否去尝试新走法
         self.n_playout = 400                                    # AI只执行400次模拟
         self.c_puct = 5                                         # ？
         self.buffer_size = 10000
@@ -90,8 +66,8 @@ class TrainPipeline():
         self.kl_targ = 0.02
         self.check_freq = 50                                    # 每50次训练后，评估一下性能
         self.game_batch_num = 2000                              # 训练总次数
-        self.best_win_ratio = 0.6                               # 当前的最佳胜率，从0开始
-        self.pure_mcts_playout_num = 2000                       # 纯MCTS（电脑对手）：每次从1000次MC模拟开始
+        self.best_win_ratio = 0.2                               # 当前的最佳胜率，从0开始
+        self.pure_mcts_playout_num = 4000                       # 纯MCTS（电脑对手）：每次从1000次MC模拟开始
 
         if init_model:
             # start training from an initial policy-value net
@@ -156,7 +132,6 @@ class TrainPipeline():
             # print("self-play data is generated!")
             # input("Press any key ....")
             self.episode_len = len(play_data)                       # 代表模拟该局的总步数，每步包括4个棋盘矩阵+概率矩阵+胜负（1，-1）
-
 
             # 数据增强：augment the data
             play_data = self.get_equi_data(play_data)               # 总步数变为8倍：
@@ -223,7 +198,7 @@ class TrainPipeline():
         return loss, entropy
 
     @print_time
-    def policy_evaluate(self, n_games=10, player=0, n_playout=1000):
+    def policy_evaluate(self, n_games=10, player=0):
         """
         Evaluate the trained policy by playing against the pure MCTS player
         Note: this is only for monitoring the progress of training
@@ -248,15 +223,14 @@ class TrainPipeline():
                 print("双手互搏进行测评，AI对手(best_policy.model) ...")
                 pure_mcts_player = MCTSPlayer(self.policy_value_net_best.policy_value_fn,
                                              c_puct=self.c_puct,
-                                             n_playout=int(self.n_playout))
+                                             n_playout=self.n_playout)
             else:
                 print("Unknown player")
                 exit(0)
         else:
-            print("采用MCTS进行测评，n_playout为: ", n_playout)
+            print("采用MCTS进行测评，pure_mcts_playout为: ", self.pure_mcts_playout_num)
             pure_mcts_player = MCTS_Pure(c_puct=5,
-                                     # n_playout=self.pure_mcts_playout_num)
-                                     n_playout=n_playout)
+                                     n_playout=self.pure_mcts_playout_num)
 
         # print(type(pure_mcts_player))
 
@@ -270,7 +244,7 @@ class TrainPipeline():
                                           is_shown=0)
             win_cnt[winner] += 1
 
-            print("%d-%d : winner is player %d" % (n_games, i+1, winner))
+            print("%d-%d : winner is player %d (start from player %d)" % (n_games, i+1, winner, i%2+1))
 
         win_ratio = 1.0*(win_cnt[1] + 0.5*win_cnt[-1]) / n_games
 
@@ -279,36 +253,36 @@ class TrainPipeline():
 
         return win_ratio
 
+    def gen_selfplay_ata(self, num=500):
+        # 多线程并行生成：根据现有模型selfplay，记录步数列表
+
+        pass
+
     def run(self):
         """run the training pipeline"""
         try:
 
             for i in range(self.game_batch_num):
 
-                self.collect_selfplay_data(n_games=self.play_batch_size)            # =1 ??
-
-                # TEST：
-                # self.collect_selfplay_data(1)
+                self.collect_selfplay_data(n_games=self.play_batch_size)            # 若有多个：生成多个后再policy_update()
 
                 print("batch %d, episode_len=%02d: " % (i+1, self.episode_len), end=" ")        # episode_len为本局的步数
-                # input("press to cotinue ...")
 
                 # data_buffer为数据增强后的总步数，变为实际步数的8倍：batch_size为512步，data_buffer在不断加大, 是否需要这么大 10000？？。
                 if len(self.data_buffer) > self.batch_size:
-                    # 策略更新：
+                    # 策略更新？记录访问状态？
                     loss, entropy = self.policy_update()
-
                 else:
                     print("")           # 数据不够：换行
 
-                # check the performance of the current model,
-                # and save the model params
+                # check the performance of the current model, and save the model params
                 if (i+1) % self.check_freq == 0:
                     print("current self-play batch: {}".format(i+1))
 
-                    win_ratio = self.policy_evaluate(n_games=5)          # 缺省下10盘, 用MCTSplayer做对手
+                    # 缺省下10盘, 用MCTSplayer做对手
+                    win_ratio = self.policy_evaluate(n_games=5)
 
-                    # win_ratio = self.policy_evaluate(n_games=5, player=2)   # player=2，用best_policy.model做对手
+                    # win_ratio = self.policy_evaluate(n_games=5, player=2)   # 用best_policy.model做对手（没变化？？）
 
                     self.policy_value_net.save_model('./current_policy.model')
                     print("Save to: current_policy.model")
@@ -328,7 +302,7 @@ class TrainPipeline():
                         if self.best_win_ratio == 1.0 and self.pure_mcts_playout_num < 5000:
                             self.pure_mcts_playout_num += 1000
                             self.best_win_ratio = 0.0                   # 从0开始
-                            print("n_playout increase to: ", self.pure_mcts_playout_num)
+                            print("pure_mcts_playout increase to: ", self.pure_mcts_playout_num)
 
                     # TEST：强制更新为current_policy
                     # else:
@@ -347,10 +321,11 @@ if __name__ == '__main__':
 
     # 记录最后一次的：lr_multiplier, learn_rate, best_win_ratio等
     training_pipeline.show_mcts()               # 增加过程显示，或者记录模拟过程！
+    init_logging()
 
-    # training_pipeline.policy_evaluate(n_games=2, player=0, n_playout=1000)       # 用MCTS作为测试基准: current_policy.model(400) vs. MCTS(1000) 3000比较好
-    # training_pipeline.policy_evaluate(n_games=2, player=1)                        # 测试AI模型性能: current_policy.model(400) vs. current_policy.model(800)
-    # training_pipeline.policy_evaluate(n_games=3, player=2)                        # 测试AI模型性能: current_policy.model(400) vs. best_policy.model(400)
+    # training_pipeline.pure_mcts_playout_num = 2000                # 修改MCTS模拟深度
+    # training_pipeline.policy_evaluate(n_games=2, player=0)       # 用MCTS作为测试基准: current_policy.model(400) vs. MCTS(1000) 3000比较好
+    # training_pipeline.policy_evaluate(n_games=2, player=1)       # 测试AI模型性能: current_policy.model(400) vs. current_policy.model(800)
+    # training_pipeline.policy_evaluate(n_games=3, player=2)       # 测试AI模型性能: current_policy.model(400) vs. best_policy.model(400)
     # exit(0)
-
     training_pipeline.run()
