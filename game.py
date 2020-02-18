@@ -213,6 +213,75 @@ class Game(object):
 
                 return winner
 
+
+    def start_self_play_from_rec(self, player, is_shown=0):
+        """
+        使用棋谱或预先生产的棋谱，即可节约时间，又可充分利用高质量的棋谱。
+        """
+
+        # 获取棋盘数据
+        X_train_str = "40 37 30 36 50 20 60 70 48 56 39 38 21 12 57"
+        X_train = list(map(int, X_train_str.split(' ')))
+
+        data_length = len(X_train)                      # 对弈长度（一盘棋盘数据的长度）
+
+        write_log("X_train=", X_train, "seq len=", data_length, show=True)
+
+        self.board.init_board()
+        p1, p2 = self.board.players
+        print(p1, p2)
+        # print('p1: ', p1, '   p2:  ', p2)
+        states, mcts_probs, current_players = [], [], []
+        # while True:
+        for num_index, move in enumerate(X_train):
+            probs = [0.000001 for _ in range(self.board.width*self.board.height)]
+            probs[move] = 0.99999
+            move_probs = np.asarray(probs)
+
+            # print("move=", move, "move_probs=", move_probs, "current_player=", self.board.current_player)
+            # print("state=", self.board.current_state())
+
+            states.append(self.board.current_state())
+            mcts_probs.append(move_probs)
+            current_players.append(self.board.current_player)
+
+            # perform a move
+            try:
+                self.board.do_move(move)
+            except Exception as e:
+                write_log(e)
+                warning, winner, mcts_probs = 1, None, None
+                return warning, winner, mcts_probs
+
+            if is_shown:
+                self.graphic(self.board, p1, p2)
+
+            # 重新设置end: 均是黑先，根据对弈长度判断是谁胜利。
+            # Q: 看看黑是1还是0，还有和棋胜负如何判断。??
+            end, warning = 0, 1
+            if num_index + 1 == data_length:
+                end = 1
+                winner = data_length % 2
+
+            if end:
+                # winner from the perspective of the current player of each state
+                winners_z = np.zeros(len(current_players))
+                if winner != -1:
+                    winners_z[np.array(current_players) == winner] = 1.0
+                    winners_z[np.array(current_players) != winner] = -1.0
+
+                # reset MCTS root node
+                player.reset_player()
+                if is_shown:
+                    if winner != -1:
+                        print("Game end. Winner is player:", winner)
+                    else:
+                        print("Game end. Tie")
+
+                return warning, winner, zip(states, mcts_probs, winners_z)
+
+
+
     def start_self_play(self, player, is_shown=0, temp=1e-3):
         """ start a self-play game using a MCTS player, reuse the search tree,
         and store the self-play data: (state, mcts_probs, z) for training
@@ -220,6 +289,7 @@ class Game(object):
         self.board.init_board()
         p1, p2 = self.board.players
         states, mcts_probs, current_players = [], [], []
+        moves = []          # 记录对弈步骤
 
         while True:
             move, move_probs = player.get_action(self.board,
@@ -232,6 +302,8 @@ class Game(object):
             states.append(self.board.current_state())
             mcts_probs.append(move_probs)
             current_players.append(self.board.current_player)
+            moves.append(move)
+
             # perform a move
             self.board.do_move(move)
 
@@ -241,6 +313,7 @@ class Game(object):
 
             if end:
                 # winner from the perspective of the current player of each state
+
                 winners_z = np.zeros(len(current_players))
                 if winner != -1:
                     winners_z[np.array(current_players) == winner] = 1.0
@@ -252,6 +325,8 @@ class Game(object):
                         print("Game end. Winner is player:", winner)
                     else:
                         print("Game end. Tie")
+
+                write_log("%d-%s" % (winner, moves))
 
                 # print("states=", states)
                 # print("mcts_probs=", mcts_probs)

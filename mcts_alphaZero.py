@@ -149,7 +149,7 @@ class MCTS(object):
         temp: temperature parameter in (0, 1] controls the level of exploration
         """
         # print("get_move_probs ...", self._n_playout, state)
-        print("n_playout=", self._n_playout)            # 800?
+        # print("n_playout=", self._n_playout)            # 800?
 
         for n in range(self._n_playout):
             state_copy = copy.deepcopy(state)

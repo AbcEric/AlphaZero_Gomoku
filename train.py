@@ -125,8 +125,10 @@ class TrainPipeline():
         """collect self-play data for training"""
 
         for i in range(n_games):
+
             winner, play_data = self.game.start_self_play(self.mcts_player,
                                                           temp=self.temp)
+            # print("winner=", winner)
             play_data = list(play_data)[:]
 
             # print("self-play data is generated!")
@@ -266,12 +268,13 @@ class TrainPipeline():
 
                 self.collect_selfplay_data(n_games=self.play_batch_size)            # 若有多个：生成多个后再policy_update()
 
-                print("batch %d, episode_len=%02d: " % (i+1, self.episode_len), end=" ")        # episode_len为本局的步数
+                write_log("batch %d, episode_len=%02d: " % (i+1, self.episode_len), show=True)        # episode_len为本局的步数
 
                 # data_buffer为数据增强后的总步数，变为实际步数的8倍：batch_size为512步，data_buffer在不断加大, 是否需要这么大 10000？？。
                 if len(self.data_buffer) > self.batch_size:
                     # 策略更新？记录访问状态？
                     loss, entropy = self.policy_update()
+                    write_log("policy_update end, loss=%4.3f" % loss)
                 else:
                     print("")           # 数据不够：换行
 
