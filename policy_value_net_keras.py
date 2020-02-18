@@ -86,7 +86,7 @@ class PolicyValueNet():
 
         self.model = Model(in_x, [self.policy_net, self.value_net])
 
-        self.model.summary()
+        # self.model.summary()
 
         def policy_value(state_input):
             state_input_union = np.array(state_input)

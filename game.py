@@ -165,6 +165,10 @@ class Game(object):
 
     def start_play(self, player1, player2, start_player=0, is_shown=1):
         """start a game between two players"""
+
+        print("start_player=", start_player)
+        # is_shown = 1
+
         if start_player not in (0, 1):
             raise Exception('start_player should be either 0 (player1 first) '
                             'or 1 (player2 first)')
@@ -173,6 +177,7 @@ class Game(object):
         player1.set_player_ind(p1)
         player2.set_player_ind(p2)
         players = {p1: player1, p2: player2}
+
         if is_shown:
             self.graphic(self.board, player1.player, player2.player)
 
@@ -235,4 +240,8 @@ class Game(object):
                         print("Game end. Winner is player:", winner)
                     else:
                         print("Game end. Tie")
+
+                # print("states=", states)
+                # print("mcts_probs=", mcts_probs)
+                # print("winners_z=", winners_z)
                 return winner, zip(states, mcts_probs, winners_z)

@@ -9,141 +9,21 @@
       <change beforePath="$PROJECT_DIR$/current_policy.model" beforeDir="false" afterPath="$PROJECT_DIR$/current_policy.model" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/human_play.py" beforeDir="false" afterPath="$PROJECT_DIR$/human_play.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mcts_alphaZero.py" beforeDir="false" afterPath="$PROJECT_DIR$/mcts_alphaZero.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/policy_value_net_keras.py" beforeDir="false" afterPath="$PROJECT_DIR$/policy_value_net_keras.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="FUSProjectUsageTrigger">
-    <session id="-406644786">
-      <usages-collector id="statistics.lifecycle.project">
-        <counts>
-          <entry key="project.closed" value="1" />
-          <entry key="project.open.time.0" value="1" />
-          <entry key="project.opened" value="1" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.extensions.open">
-        <counts>
-          <entry key="py" value="5" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.types.open">
-        <counts>
-          <entry key="Python" value="5" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.extensions.edit">
-        <counts>
-          <entry key="py" value="931" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.types.edit">
-        <counts>
-          <entry key="Python" value="931" />
-        </counts>
-      </usages-collector>
-    </session>
-  </component>
-  <component name="FileEditorManager">
-    <leaf>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/train.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="573">
-              <caret line="278" column="47" selection-start-line="278" selection-start-column="47" selection-end-line="278" selection-end-column="47" />
-              <folding>
-                <marker date="1581933200648" expanded="true" signature="4146:4324" ph="..." />
-                <marker date="1581933200648" expanded="true" signature="4359:4368" ph="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/policy_value_net_keras.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="145">
-              <caret line="25" column="23" lean-forward="true" selection-start-line="25" selection-start-column="23" selection-end-line="25" selection-end-column="23" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/human_play.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="90">
-              <caret line="80" lean-forward="true" selection-start-line="80" selection-end-line="80" />
-              <folding>
-                <element signature="e#110#147#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/game.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="473">
-              <caret line="212" lean-forward="true" selection-start-line="212" selection-end-line="212" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mcts_alphaZero.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="313">
-              <caret line="204" column="65" lean-forward="true" selection-start-line="204" selection-start-column="65" selection-end-line="204" selection-end-column="65" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-  </component>
-  <component name="IdeDocumentHistory">
-    <option name="CHANGED_PATHS">
-      <list>
-        <option value="$PROJECT_DIR$/game.py" />
-        <option value="$PROJECT_DIR$/human_play.py" />
-        <option value="$PROJECT_DIR$/train.py" />
-      </list>
-    </option>
-  </component>
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="271" />
-    <option name="y" value="96" />
-    <option name="width" value="1379" />
-    <option name="height" value="774" />
   </component>
   <component name="ProjectId" id="1XsAp0YBGELp1Su1wor4vRMyo48" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
-  </component>
-  <component name="ProjectView">
-    <navigator proportions="" version="1">
-      <foldersAlwaysOnTop value="true" />
-    </navigator>
-    <panes>
-      <pane id="Scope" />
-      <pane id="ProjectPane">
-        <subPane>
-          <expand>
-            <path>
-              <item name="AlphaZero_Gomoku" type="b2602c69:ProjectViewProjectNode" />
-              <item name="AlphaZero_Gomoku" type="462c0819:PsiDirectoryNode" />
-            </path>
-          </expand>
-          <select />
-        </subPane>
-      </pane>
-    </panes>
   </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -155,18 +35,6 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager" selected="Python.train">
     <configuration name="human_play" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
@@ -247,52 +115,27 @@
     </task>
     <servers />
   </component>
-  <component name="ToolWindowManager">
-    <frame x="-9" y="-9" width="1938" height="1098" extended-state="6" />
-    <layout>
-      <window_info id="Favorites" side_tool="true" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.2497349" />
-      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Version Control" />
-      <window_info anchor="bottom" id="Python Console" weight="0.3296582" />
-      <window_info anchor="bottom" id="Terminal" />
-      <window_info anchor="bottom" id="Event Log" side_tool="true" />
-      <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.3969129" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
-      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
-      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
-      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-    </layout>
-  </component>
-  <component name="VcsContentAnnotationSettings">
-    <option name="myLimit" value="2678400000" />
-  </component>
   <component name="WindowStateProjectService">
-    <state width="2538" height="482" key="GridCell.Tab.0.bottom" timestamp="1581896085103">
+    <state width="2538" height="545" key="GridCell.Tab.0.bottom" timestamp="1581984138808">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2538" height="482" key="GridCell.Tab.0.bottom/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
-    <state width="2538" height="482" key="GridCell.Tab.0.center" timestamp="1581896085103">
+    <state width="2538" height="545" key="GridCell.Tab.0.bottom/0.0.2560.1440@0.0.2560.1440" timestamp="1581984138808" />
+    <state width="2538" height="545" key="GridCell.Tab.0.center" timestamp="1581984138808">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2538" height="482" key="GridCell.Tab.0.center/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
-    <state width="2538" height="482" key="GridCell.Tab.0.left" timestamp="1581896085103">
+    <state width="2538" height="545" key="GridCell.Tab.0.center/0.0.2560.1440@0.0.2560.1440" timestamp="1581984138808" />
+    <state width="2538" height="545" key="GridCell.Tab.0.left" timestamp="1581984138808">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2538" height="482" key="GridCell.Tab.0.left/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
-    <state width="2538" height="482" key="GridCell.Tab.0.right" timestamp="1581896085103">
+    <state width="2538" height="545" key="GridCell.Tab.0.left/0.0.2560.1440@0.0.2560.1440" timestamp="1581984138808" />
+    <state width="2538" height="545" key="GridCell.Tab.0.right" timestamp="1581984138808">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state width="2538" height="482" key="GridCell.Tab.0.right/0.0.2560.1440@0.0.2560.1440" timestamp="1581896085103" />
-    <state x="781" y="362" key="SettingsEditor" timestamp="1581824982950">
+    <state width="2538" height="545" key="GridCell.Tab.0.right/0.0.2560.1440@0.0.2560.1440" timestamp="1581984138808" />
+    <state x="781" y="362" key="SettingsEditor" timestamp="1581937415667">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
-    <state x="781" y="362" key="SettingsEditor/0.0.2560.1440@0.0.2560.1440" timestamp="1581824982950" />
+    <state x="781" y="362" key="SettingsEditor/0.0.2560.1440@0.0.2560.1440" timestamp="1581937415667" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -304,49 +147,5 @@
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
-  </component>
-  <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/game.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="473">
-          <caret line="212" lean-forward="true" selection-start-line="212" selection-end-line="212" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/mcts_alphaZero.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="313">
-          <caret line="204" column="65" lean-forward="true" selection-start-line="204" selection-start-column="65" selection-end-line="204" selection-end-column="65" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/policy_value_net_keras.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="145">
-          <caret line="25" column="23" lean-forward="true" selection-start-line="25" selection-start-column="23" selection-end-line="25" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/human_play.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="80" lean-forward="true" selection-start-line="80" selection-end-line="80" />
-          <folding>
-            <element signature="e#110#147#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="573">
-          <caret line="278" column="47" selection-start-line="278" selection-start-column="47" selection-end-line="278" selection-end-column="47" />
-          <folding>
-            <marker date="1581933200648" expanded="true" signature="4146:4324" ph="..." />
-            <marker date="1581933200648" expanded="true" signature="4359:4368" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
   </component>
 </project>

@@ -56,8 +56,8 @@ def run():
     # 要采用：PolicyValueNet(）
     n = 5
     width, height = 9, 9
-    # model_file = 'current_policy.model'
-    model_file = 'best_policy.model'
+    model_file = 'current_policy.model'
+    # model_file = 'best_policy.model'
 
     try:
         board = Board(width=width, height=height, n_in_row=n)
@@ -70,7 +70,7 @@ def run():
         # mcts_player = MCTSPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=400)
 
         # load the provided model (trained in Theano/Lasagne) into a MCTS player written in pure numpy
-        if model_file != "best_policy.model":
+        if model_file not in ["best_policy.model", "current_policy.model"]:
             try:
                 policy_param = pickle.load(open(model_file, 'rb'))
             except:
@@ -80,6 +80,7 @@ def run():
             best_policy = PolicyValueNetNumpy(width, height, policy_param)
         else:
             # 使用自己训练的模型：非numpy方式！
+            print("AI model: ", model_file)
             best_policy = PolicyValueNet(width, height, model_file)
 
         # 采用训练的AI模型作为对手：n_playout越大，水平越高，速度明显快很多！

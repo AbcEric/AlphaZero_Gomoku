@@ -160,6 +160,8 @@ class MCTS(object):
         # MCTS算法思想：模拟的时候选择Q+u最大的节点，这是exploitation和exploration的平衡，
         # Q对应exploitation，偏向于选择实际模拟过程中表现好的分支，u对应exploration，给访问次数少的分支一些机会，充分的探索，可能发现更好的策略。
         # 正式下棋的时候，不再需要探索，一般我们选择visit次数最多的分支，这种选择方法相对Robust
+
+        # temp有什么影响？？
         act_probs = softmax(1.0/temp * np.log(np.array(visits) + 1e-10))
 
         return acts, act_probs
@@ -182,8 +184,7 @@ class MCTSPlayer(object):
     """AI player based on MCTS"""
 
     # c_puct ？？
-    def __init__(self, policy_value_function,
-                 c_puct=5, n_playout=2000, is_selfplay=0):
+    def __init__(self, policy_value_function, c_puct=5, n_playout=2000, is_selfplay=0):
         self.mcts = MCTS(policy_value_function, c_puct, n_playout)
         self._is_selfplay = is_selfplay
 
