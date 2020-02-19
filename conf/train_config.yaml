@@ -1,0 +1,62 @@
+# 数据目录
+sgf_dir: '../DATA/Gomoku/sgf_data'
+# AI对弈数据目录
+ai_data_dir: './pickle_ai_data'
+# 棋盘设置
+board_width: 15
+board_height: 15
+n_in_row: 5
+# 学习率
+learn_rate: 0.002
+# 根据KL散度动态调整学习率
+lr_multiplier: 0.2
+temp: 1.0
+# 每次移动的simulations数
+n_playout: 400
+# TODO: 蒙特卡洛树模拟选择时更多的依靠先验，估值越精确，C就应该偏向深度（越小）
+c_puct: 5
+# 数据集最大量（双端队列长度）
+buffer_size: 10000
+batch_size: 512
+# epochs: 8
+epochs: 5
+play_batch_size: 1
+# KL散度
+kl_targ: 0.02
+# 每check_freq次 检测对弈成绩
+check_freq: 200
+# 检测成绩用的mcts对手的思考深度
+pure_mcts_playout_num: 1000
+# 训练多少轮
+game_batch_num: 20000
+
+# 训练日志
+train_logging:
+    version: 1
+    formatters:
+        simpleFormater:
+            format: '%(asctime)s - %(levelname)s - %(name)s[line:%(lineno)d]: %(message)s'
+            datefmt: '%Y-%m-%d %H:%M:%S'
+    handlers:
+        # 标准输出，只要级别在DEBUG以上就会输出
+        console:
+            class: logging.StreamHandler
+            formatter: simpleFormater
+            level: DEBUG
+            stream: ext://sys.stdout
+        # INFO以上，滚动文件，保留20个，每个最大100MB
+        info_file_handler:
+            class : logging.FileHandler
+            formatter: simpleFormater
+            level: INFO
+            filename: ./logs/info.log
+        # ERROR以上
+        error_file_handler:
+            class : logging.FileHandler
+            formatter: simpleFormater
+            level: ERROR
+            filename: ./logs/error.log
+    root:
+        # 在DEBUG及以上，才输出：是否屏幕输出，通过console这个handler来控制
+        level: INFO
+        handlers: [console, info_file_handler, error_file_handler]

@@ -5,7 +5,11 @@
 
 from __future__ import print_function
 import numpy as np
-from mytoolkit import write_log
+from mytoolkit import load_config
+
+import logging.config
+logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
+_logger = logging.getLogger(__name__)
 
 class Board(object):
     """board for the game"""
@@ -23,6 +27,7 @@ class Board(object):
     def init_board(self, start_player=0):
         if self.width < self.n_in_row or self.height < self.n_in_row:
             raise Exception('board width and height can not be less than ', self.n_in_row)
+
         self.current_player = self.players[start_player]    # start player
         # keep available moves in a list
         self.availables = list(range(self.width * self.height))
@@ -53,10 +58,11 @@ class Board(object):
 
     def current_state(self):
         """return the board state from the perspective of the current player.
-        state shape: 4*width*height
+        state shape: 4*width*height 4个矩阵，包括自己和对手已走棋子，上一步，和先后手；
         """
 
         square_state = np.zeros((4, self.width, self.height))
+
         if self.states:
             moves, players = np.array(list(zip(*self.states.items())))
             move_curr = moves[players == self.current_player]
@@ -65,11 +71,15 @@ class Board(object):
                             move_curr % self.height] = 1.0
             square_state[1][move_oppo // self.width,
                             move_oppo % self.height] = 1.0
-            # indicate the last move location
+
+            # 上一步的落子：indicate the last move location
             square_state[2][self.last_move // self.width,
                             self.last_move % self.height] = 1.0
+
+        # 先后还是后手：
         if len(self.states) % 2 == 0:
             square_state[3][:, :] = 1.0  # indicate the colour to play
+
         return square_state[:, ::-1, :]
 
     def do_move(self, move):
@@ -193,7 +203,7 @@ class Game(object):
 
             move = player_in_turn.get_action(self.board)
             play_steps.append(move)
-            print("player %d: %d" % (current_player, move))
+            _logger.info("player %d: %d" % (current_player, move))
 
             self.board.do_move(move)
             # print("***")
@@ -203,33 +213,35 @@ class Game(object):
             if end:
                 if is_shown:
                     if winner != -1:
-                        print("Game end. Winner is", players[winner], winner)
+                        _logger.debug("Game end. Winner is", players[winner], winner)
                     else:
-                        print("Game end. Tie")
+                        _logger.debug("Game end. Tie")
 
-                # 将int列表转换为str列表后，才能用join连接：
-                print("winner = ", winner, players[winner])
-                write_log("play_steps= %s  winner= %d" % (" ".join(map(str, play_steps)), winner), show=True)
+                # 将int列表转换为str列表后，才能用join连接：# players[winner]为"MCTS 1/2"
+                _logger.info("play_steps= %s  winner= %d" % (" ".join(map(str, play_steps)), winner))
 
                 return winner
 
-
-    def start_self_play_from_rec(self, player, is_shown=0):
+    def start_from_train_data(self, player, train_data, is_shown=0):
         """
         使用棋谱或预先生产的棋谱，即可节约时间，又可充分利用高质量的棋谱。
         """
 
         # 获取棋盘数据
-        X_train_str = "40 37 30 36 50 20 60 70 48 56 39 38 21 12 57"
-        X_train = list(map(int, X_train_str.split(' ')))
-
+        # X_train_str = "40 37 30 36 50 20 60 70 48 56 39 38 21 12 57"
+        # X_train = list(map(int, X_train_str.split(' ')))
+        # train_data = [1, [12,12,33,44,56]]
+        winner = train_data[0]
+        X_train = train_data[1]
         data_length = len(X_train)                      # 对弈长度（一盘棋盘数据的长度）
 
-        write_log("X_train=", X_train, "seq len=", data_length, show=True)
+        # 为何这里_logger不能正常使用？？
+
+        _logger.info("X_train=%s seq_len=%d winner=%d" % (X_train, data_length, winner))
+        print("X_train = %s seq_len = %d winner=%d" % (X_train, data_length, winner))
 
         self.board.init_board()
         p1, p2 = self.board.players
-        print(p1, p2)
         # print('p1: ', p1, '   p2:  ', p2)
         states, mcts_probs, current_players = [], [], []
         # while True:
@@ -249,7 +261,7 @@ class Game(object):
             try:
                 self.board.do_move(move)
             except Exception as e:
-                write_log(e)
+                print(str(e))
                 warning, winner, mcts_probs = 1, None, None
                 return warning, winner, mcts_probs
 
@@ -261,7 +273,7 @@ class Game(object):
             end, warning = 0, 1
             if num_index + 1 == data_length:
                 end = 1
-                winner = data_length % 2
+                # winner = data_length % 2
 
             if end:
                 # winner from the perspective of the current player of each state
@@ -278,9 +290,7 @@ class Game(object):
                     else:
                         print("Game end. Tie")
 
-                return warning, winner, zip(states, mcts_probs, winners_z)
-
-
+                return winner, zip(states, mcts_probs, winners_z)
 
     def start_self_play(self, player, is_shown=0, temp=1e-3):
         """ start a self-play game using a MCTS player, reuse the search tree,
@@ -296,7 +306,7 @@ class Game(object):
                                                  temp=temp,
                                                  return_prob=1)
             # 判断移动哪一个棋子：
-            # print("move and probs: ", move, move_probs)
+            # print("move: ", move)
 
             # store the data
             states.append(self.board.current_state())
@@ -326,7 +336,7 @@ class Game(object):
                     else:
                         print("Game end. Tie")
 
-                write_log("%d-%s" % (winner, moves))
+                _logger.info("%d-%s" % (winner, moves))
 
                 # print("states=", states)
                 # print("mcts_probs=", mcts_probs)

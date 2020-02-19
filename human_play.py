@@ -17,7 +17,13 @@ from policy_value_net_numpy import PolicyValueNetNumpy          # 纯numpy环境
 # from policy_value_net_pytorch import PolicyValueNet  # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet # Tensorflow
 from policy_value_net_keras import PolicyValueNet               # Keras
-from mytoolkit import init_logging, write_log
+# from mytoolkit import init_logging, write_log
+from mytoolkit import print_time, load_config
+
+import logging.config
+logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
+_logger = logging.getLogger(__name__)
+
 
 class Human(object):
     """
@@ -55,7 +61,7 @@ def run():
 
     # 要采用：PolicyValueNet(）
     n = 5
-    width, height = 9, 9
+    width, height = 15, 15
     model_file = 'current_policy.model'
     # model_file = 'best_policy.model'
 
@@ -70,6 +76,7 @@ def run():
         # mcts_player = MCTSPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=400)
 
         # load the provided model (trained in Theano/Lasagne) into a MCTS player written in pure numpy
+        # 采用作者的预训练模型，只支持6x6或8x8：
         if model_file not in ["best_policy.model", "current_policy.model"]:
             try:
                 policy_param = pickle.load(open(model_file, 'rb'))
@@ -80,14 +87,13 @@ def run():
             best_policy = PolicyValueNetNumpy(width, height, policy_param)
         else:
             # 使用自己训练的模型：非numpy方式！
-            print("AI model: ", model_file)
+            _logger.info("AI model: %s" % model_file)
             best_policy = PolicyValueNet(width, height, model_file)
 
         # 采用训练的AI模型作为对手：n_playout越大，水平越高，速度明显快很多！
         mcts_player = MCTSPlayer(best_policy.policy_value_fn,
                                  c_puct=5,
-                                 n_playout=2000)
-                                 # n_playout=400)
+                                 n_playout=400)
 
         # 采用MCTS作为对手：n_playout越高，水平越厉害（当n_playout=2000时，每步考虑时间就很长了，每步要5秒以上）
         # MCTS的水平很差！基本要3000以上水平才可以。
@@ -104,5 +110,5 @@ def run():
 
 
 if __name__ == '__main__':
-    init_logging()
+    # init_logging()
     run()

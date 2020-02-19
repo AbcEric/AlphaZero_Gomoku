@@ -1,7 +1,31 @@
+#
+# My Toolkits:
+#
+# @author: Eric Li
+# 1. 日志logging：
+#
+
 import logging, time
+import os
+import yaml
+import time
+import logging
+import logging.config
 
-__all__ = ['print_time']
+__all__ = ['print_time', 'load_config']
 
+# 增加如下代码， 并配置config.yaml文件，使用_logger.info()等。
+# import logging.config
+# logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
+
+def load_config(data_path):
+    f = open(data_path, 'r', encoding='UTF-8')
+    conf = yaml.load(f)
+    f.close()
+    return conf
+
+# configure_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../conf/train_config.yaml')
+# config_ = load_config(configure_path)
 
 def print_time(f):
     """ 装饰器：记录函数运行时间
