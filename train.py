@@ -36,8 +36,15 @@ Q：
 5. MCTS采用递归性能较低，能否采用队列方式实现？来提升效率，进一步研究MCTS
 
 """
-
 from __future__ import print_function
+
+from mytoolkit import print_time, load_config
+import logging.config
+# logging设置只能执行一次，要确保最先执行，在其它包含文件之前，否则包含文件会WARNING及以上才会记录。
+logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
+# 目的得到当前程序名，便于定位。
+_logger = logging.getLogger(__name__)
+
 import random, os
 import numpy as np
 from collections import defaultdict, deque
@@ -48,11 +55,6 @@ from mcts_alphaZero import MCTSPlayer
 # from policy_value_net_pytorch import PolicyValueNet           # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet        # Tensorflow
 from policy_value_net_keras import PolicyValueNet               # Keras
-from mytoolkit import print_time, load_config
-
-import logging.config
-logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
-_logger = logging.getLogger(__name__)
 
 
 class TrainPipeline():
@@ -301,17 +303,17 @@ class TrainPipeline():
 
                     # 评价后决定是否保存到best_policy模型：
                     if win_ratio > self.best_win_ratio:
-                        self.best_win_ratio = win_ratio
                         self.policy_value_net.save_model('./best_policy.model')
                         _logger.info("New best policy(%3.2f>%3.2f), save to best_plicy.model!" % (win_ratio, self.best_win_ratio))
                         # self.policy_value_net_best = self.policy_value_net
+                        self.best_win_ratio = win_ratio
 
                         # 当MCTS被我们训练的AI模型完全打败时，pure MCTS AI就升级到每步使用2000次模拟，以此类推，不断增强，
                         # 而我们训练的AlphaZeroAI模型每一步始终只使用400次模拟
                         if self.best_win_ratio == 1.0 and self.pure_mcts_playout_num < 5000:
                             self.pure_mcts_playout_num += 1000
                             self.best_win_ratio = 0.0                   # 从0开始
-                            _logger.info("pure_mcts_playout increase to: ", self.pure_mcts_playout_num)
+                            _logger.info("pure_mcts_playout increase to %d" % self.pure_mcts_playout_num)
 
         except KeyboardInterrupt:
             _logger.error('quit')
@@ -321,14 +323,13 @@ def content_to_order(sequence):
     LETTER_NUM = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o']
     BIG_LETTER_NUM = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O']
     NUM_LIST = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+
     # 棋盘字母位置速查表
     seq_lookup = dict(zip(LETTER_NUM, NUM_LIST))
     num2char_lookup = dict(zip(NUM_LIST, BIG_LETTER_NUM))
 
     seq_list = sequence.split(';')
-    # list:['hh', 'ii', 'hi'....]
     seq_list = [item[2:4] for item in seq_list]
-    # list: [112, 128, ...]
     seq_num_list = [seq_lookup[item[0]]*15+seq_lookup[item[1]] for item in seq_list]
     return seq_list, seq_num_list
 
@@ -366,6 +367,11 @@ def gen_moves_from_sgf(sgf_path, refresh=False):
 
             try:
                 seq_list, seq_num_list = content_to_order(sequence)
+
+                # 检查棋子是否有重复：
+                if len(seq_num_list) != len(list(set(seq_num_list))):
+                    _logger.warning("%s: 有重复落子 - %s" % (file_name, seq_num_list))
+                    continue
                 # _logger.debug("seq_list=%s, seq_num=%s" % (seq_list, seq_num_list))
             except Exception as e:
                 _logger.error('file=%s, error:%s' % (file_name, str(e)))
@@ -373,10 +379,16 @@ def gen_moves_from_sgf(sgf_path, refresh=False):
 
             if "黑胜" in file_name:
                 winner = 1
+                if len(seq_num_list) % 2 != 1:
+                    _logger.warning("%s: the winner 1 maybe wrong. " % file_name)
             elif "白胜" in file_name:
                 winner = 2
+                if len(seq_num_list) % 2 != 0:
+                    _logger.warning("%s: the winner 2 maybe wrong. " % file_name)
             else:
                 winner = -1
+
+
 
             # 检查是否需要copy.deepcopy(xxx)？前面已经重新赋值！
             result.append([winner, seq_num_list])
@@ -390,6 +402,9 @@ def gen_moves_from_sgf(sgf_path, refresh=False):
 if __name__ == '__main__':
     _logger.info("Training is begining ...")
     conf = load_config('./conf/train_config.yaml')
+
+    # 强制重新生成数据：某些是超时判负，某些是先手双三（禁手判负）
+    # train_data = gen_moves_from_sgf(conf["sgf_dir"], refresh=True)
 
     training_pipeline = TrainPipeline(conf, init_model="current_policy.model")
     # training_pipeline = TrainPipeline(conf, init_model=None)      # 首次训练

@@ -12,20 +12,32 @@ import time
 import logging
 import logging.config
 
-__all__ = ['print_time', 'load_config']
+__all__ = ['print_time', 'load_config', 'modify_config']
 
 # 增加如下代码， 并配置config.yaml文件，使用_logger.info()等。
 # import logging.config
 # logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
 
+
 def load_config(data_path):
-    f = open(data_path, 'r', encoding='UTF-8')
-    conf = yaml.load(f)
-    f.close()
-    return conf
+    with open(data_path, 'r', encoding='UTF-8') as f:
+        conf = yaml.load(f, Loader=yaml.FullLoader)
+        return conf
 
 # configure_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../conf/train_config.yaml')
 # config_ = load_config(configure_path)
+
+
+# 写入yaml文件：会去掉yaml的注释？？
+def modify_config(conf_file, para_name, para_value):
+    conf = load_config(conf_file)
+    conf[para_name] = para_value
+
+    with open(conf_file, "w", encoding="utf-8") as f:
+        yaml.dump(conf, f)
+        # yaml.dump(conf, f, Dumper=yaml.RoundTripDumper)
+        return True
+
 
 def print_time(f):
     """ 装饰器：记录函数运行时间

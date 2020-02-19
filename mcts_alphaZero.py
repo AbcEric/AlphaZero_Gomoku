@@ -9,6 +9,9 @@ network to guide the tree search and evaluate the leaf nodes
 import numpy as np
 import copy
 
+import logging
+_logger = logging.getLogger(__name__)       # 目的是得到当前文件名
+
 
 def softmax(x):
     probs = np.exp(x - np.max(x))
@@ -142,23 +145,29 @@ class MCTS(object):
         node.update_recursive(-leaf_value)
 
     # 这一步很花时间：需要2s左右！调用一次就会执行400次MCTS playout。
+    # 局面分析：依据当前局面得到步骤可能性
+    # 1. 采用蒙特卡洛下棋
+    # 2. 依据蒙特卡洛树来统计每个动作的访问次数
+    # 3. 对访问次数做softmax归一化得到概率。
     def get_move_probs(self, state, temp=1e-3):
         """Run all playouts sequentially and return the available actions and
         their corresponding probabilities.
         state: the current game state
         temp: temperature parameter in (0, 1] controls the level of exploration
         """
-        # print("get_move_probs ...", self._n_playout, state)
-        # print("n_playout=", self._n_playout)            # 800?
 
+        # 蒙特卡洛下棋:
         for n in range(self._n_playout):
             state_copy = copy.deepcopy(state)
             self._playout(state_copy)
 
+        # 依据访问来计算可能性:
         # calc the move probabilities based on visit counts at the root node
         act_visits = [(act, node._n_visits)
                       for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)
+
+        # 归一化：
         # temp=1，返回act_probs概率相近的更多，有更多的选择，当temp=0.1时，集中在少数，基本不再探索不同的走法！
         act_probs = softmax(1.0/temp * np.log(np.array(visits) + 1e-10))
         # print("prob(temp=1):", act_probs[act_probs>0.1])
@@ -200,8 +209,12 @@ class MCTSPlayer(object):
         # the pi vector returned by MCTS as in the alphaGo Zero paper
         move_probs = np.zeros(board.width*board.height)
         if len(sensible_moves) > 0:
+            # 得到当前局面的全部可能"下法"acts和推荐概率probs
             acts, probs = self.mcts.get_move_probs(board, temp)
             move_probs[list(acts)] = probs
+
+            # 长度为200多，随着落子增加而减少。
+            # _logger.info("len of probs = %d" % len(probs))
 
             # MCTS算法思想：模拟时选择Q+u最大的节点，这是exploitation和exploration的平衡，
             # Q对应exploitation，实际模拟过程中表现好的分支，u对应exploration，充分探索访问次数少的分支，发现是否有更好的策略。
@@ -215,7 +228,7 @@ class MCTSPlayer(object):
                 move = np.random.choice(
                     acts,
                     # p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs)))
-                    p=0.75*probs + 0.25*np.random.dirichlet(0.1*np.ones(len(probs)))
+                    p=0.75*probs + 0.25*np.random.dirichlet(0.1*np.ones(len(probs)))       # 设置随机从acts数组中各元素取中的概率，越小应该概率差异较大。
                 )
                 # update the root node and reuse the search tree
                 self.mcts.update_with_move(move)

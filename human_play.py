@@ -5,8 +5,15 @@ Input your move in the format: 2,3
 
 @author: Junxiao Song
 """
-
 from __future__ import print_function
+
+from mytoolkit import print_time, load_config
+import logging.config
+# logging设置只能执行一次，要确保最先执行，在其它包含文件之前，否则包含文件会WARNING及以上才会记录。
+logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
+# 目的得到当前程序名，便于定位。
+_logger = logging.getLogger(__name__)
+
 import pickle, random
 from game import Board, Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
@@ -17,12 +24,6 @@ from policy_value_net_numpy import PolicyValueNetNumpy          # 纯numpy环境
 # from policy_value_net_pytorch import PolicyValueNet  # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet # Tensorflow
 from policy_value_net_keras import PolicyValueNet               # Keras
-# from mytoolkit import init_logging, write_log
-from mytoolkit import print_time, load_config
-
-import logging.config
-logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
-_logger = logging.getLogger(__name__)
 
 
 class Human(object):

@@ -5,11 +5,8 @@
 
 from __future__ import print_function
 import numpy as np
-from mytoolkit import load_config
-
-import logging.config
-logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
-_logger = logging.getLogger(__name__)
+import logging
+_logger = logging.getLogger(__name__)       # 目的是得到当前文件名
 
 class Board(object):
     """board for the game"""
@@ -58,7 +55,7 @@ class Board(object):
 
     def current_state(self):
         """return the board state from the perspective of the current player.
-        state shape: 4*width*height 4个矩阵，包括自己和对手已走棋子，上一步，和先后手；
+        state: 4个矩阵(均为height*width)，包括player1 moves, player2 moves, last move and current player(先后手)
         """
 
         square_state = np.zeros((4, self.width, self.height))
@@ -203,7 +200,7 @@ class Game(object):
 
             move = player_in_turn.get_action(self.board)
             play_steps.append(move)
-            _logger.info("player %d: %d" % (current_player, move))
+            _logger.debug("player %d: %d" % (current_player, move))
 
             self.board.do_move(move)
             # print("***")
@@ -231,14 +228,12 @@ class Game(object):
         # X_train_str = "40 37 30 36 50 20 60 70 48 56 39 38 21 12 57"
         # X_train = list(map(int, X_train_str.split(' ')))
         # train_data = [1, [12,12,33,44,56]]
+
         winner = train_data[0]
         X_train = train_data[1]
         data_length = len(X_train)                      # 对弈长度（一盘棋盘数据的长度）
 
-        # 为何这里_logger不能正常使用？？
-
-        _logger.info("X_train=%s seq_len=%d winner=%d" % (X_train, data_length, winner))
-        print("X_train = %s seq_len = %d winner=%d" % (X_train, data_length, winner))
+        # _logger.info("X_train=%s seq_len=%d winner=%d" % (X_train, data_length, winner))
 
         self.board.init_board()
         p1, p2 = self.board.players
@@ -296,12 +291,14 @@ class Game(object):
         """ start a self-play game using a MCTS player, reuse the search tree,
         and store the self-play data: (state, mcts_probs, z) for training
         """
+        # 下棋过程：
         self.board.init_board()
         p1, p2 = self.board.players
         states, mcts_probs, current_players = [], [], []
         moves = []          # 记录对弈步骤
 
         while True:
+            # 得到每一步落子：
             move, move_probs = player.get_action(self.board,
                                                  temp=temp,
                                                  return_prob=1)

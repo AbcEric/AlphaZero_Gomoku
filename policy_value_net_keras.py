@@ -24,6 +24,8 @@ from keras.utils import np_utils
 import numpy as np
 import pickle
 # print(tf.__version__)
+import logging
+_logger = logging.getLogger(__name__)       # 目的是得到当前文件名
 
 class PolicyValueNet():
     """policy-value network """
@@ -35,7 +37,7 @@ class PolicyValueNet():
         self._loss_train_op()
 
         if model_file:
-            print("Open model file: ", model_file)
+            _logger.info("Open model file: %s" % model_file)
             net_params = pickle.load(open(model_file, 'rb'))
             self.model.set_weights(net_params)
         
