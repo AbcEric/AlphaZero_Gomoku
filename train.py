@@ -190,7 +190,8 @@ class TrainPipeline():
             # _logger.info("%d-%d: policy_value_net loss=%4.3f" % (self.epochs, i+1, loss))
 
         # 学习率的动态调整
-        if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
+        # if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
+        if kl > self.kl_targ * 2 and self.lr_multiplier > 0.05:
             self.lr_multiplier /= 1.5
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
             self.lr_multiplier *= 1.5

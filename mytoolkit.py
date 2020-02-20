@@ -18,10 +18,10 @@ __all__ = ['print_time', 'load_config', 'modify_config']
 # import logging.config
 # logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging'])
 
-
 def load_config(data_path):
     with open(data_path, 'r', encoding='UTF-8') as f:
-        conf = yaml.load(f, Loader=yaml.FullLoader)
+        # conf = yaml.load(f, Loader=yaml.FullLoader)
+        conf = yaml.load(f)
         return conf
 
 # configure_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../conf/train_config.yaml')
