@@ -25,7 +25,7 @@ class Board(object):
         if self.width < self.n_in_row or self.height < self.n_in_row:
             raise Exception('board width and height can not be less than ', self.n_in_row)
 
-        self.current_player = self.players[start_player]    # start player
+        self.current_player = self.players[start_player]    # 当前玩家为start player：谁执黑先走，1为玩家，2为对手
         # keep available moves in a list
         self.availables = list(range(self.width * self.height))
         self.states = {}
@@ -161,13 +161,20 @@ class Game(object):
                 loc = i * width + j
                 p = board.states.get(loc, -1)
                 if p == player1:
-                    print("%8s" % 'X', end=' ')
+                    # print("%8s" % 'X', end=' ')
+                    print("%8s" % '●', end=' ')
                 elif p == player2:
-                    print("%8s" % 'O', end=' ')
+                    # print("%8s" % 'O', end=' ')
+                    print("%8s" % '○', end=' ')
                 else:
                     print("%8s" % '-', end=' ')
 
             print('\r\n')
+
+
+    def yixin_action(self, board, play_steps):
+
+        return 210+len(play_steps)
 
     def start_play(self, player1, player2, start_player=0, is_shown=1):
         """start a game between two players"""
@@ -180,9 +187,10 @@ class Game(object):
             raise Exception('start_player should be either 0 (player1 first) '
                             'or 1 (player2 first)')
 
-        # player2先走：
+        # start_player为0和1：为0时为player1先走，1为player2（对手）先走：
         if start_player == 1:
-            play_steps.append(-1)
+            _logger.info("player %d starts first ... " % (start_player+1))
+            # play_steps.append(-1)
 
         self.board.init_board(start_player)
         p1, p2 = self.board.players             # [1, 2]玩家编号
@@ -197,24 +205,42 @@ class Game(object):
             current_player = self.board.get_current_player()
             player_in_turn = players[current_player]
             # print("...：", player_in_turn, self.board)
+            _logger.debug("start_player=%d(0为玩家，1为对手) current_player=%d(1为玩家，2为对手) " % (start_player, current_player))
+
+            # 注意：SGF格式为行X列（aa,ab,ac...），而Yixin为列X行(A1,B1,C1...)，二者均是左下角为0,0，二者为转置关系，要转换为SGF方式：
+            # 采用模型给出move：
 
             move = player_in_turn.get_action(self.board)
+
+            # 由Yinxin AI给出move：
+            # move = self.yixin_action(self.board, play_steps)
+
             play_steps.append(move)
             _logger.debug("player %d: %d" % (current_player, move))
 
             self.board.do_move(move)
-            # print("***")
+
             if is_shown:
                 self.graphic(self.board, player1.player, player2.player)
+
+            # 判断是否结束：
             end, winner = self.board.game_end()
             if end:
                 if is_shown:
                     if winner != -1:
-                        _logger.debug("Game end. Winner is", players[winner], winner)
+                        _logger.debug("Game end：Winner is player%d" % winner)
                     else:
-                        _logger.debug("Game end. Tie")
+                        _logger.debug("Game end：Tie")
 
-                # 将int列表转换为str列表后，才能用join连接：# players[winner]为"MCTS 1/2"
+                # 将int列表转换为str列表后，才能用join连接：# players[winner]为"MCTS 1/2"。winner是1或2
+                if start_player == 1:
+                    # 当player2先走时:
+                    if winner == 1:
+                        # winner为2，对应player2获胜，由于他先走，此时结果相当于1获胜。
+                        winner = 2
+                    else:
+                        winner = 1
+
                 _logger.info("play_steps= %s  winner= %d" % (" ".join(map(str, play_steps)), winner))
 
                 return winner

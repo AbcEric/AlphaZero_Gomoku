@@ -14,7 +14,7 @@ logging.config.dictConfig(load_config('./conf/train_config.yaml')['train_logging
 # 目的得到当前程序名，便于定位。
 _logger = logging.getLogger(__name__)
 
-import pickle, random
+import pickle, random, time
 from game import Board, Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
 from mcts_alphaZero import MCTSPlayer
@@ -52,6 +52,90 @@ class Human(object):
 
     def __str__(self):
         return "Human {}".format(self.player)
+
+# import threading
+from subprocess import *
+
+class Yixin(object):
+    """
+    Yixin AI player
+    """
+
+    def __init__(self):
+        self.player = None
+        self.first = True
+        self.p = Popen('/Program Files/Yixin/engine.exe', stdin=PIPE, stdout=PIPE)
+
+    def set_player_ind(self, p):
+        self.player = p
+
+    def send_command(self, command=""):
+        if not command.endswith("\r\n"):
+            command = command + "\r\n"  # 必须要有，代表一行的命令结束。
+
+        self.p.stdin.write(command.encode('GBK'))  # 编码格式与系统有关？这里若为UTF-8，显示中文不正常。
+        self.p.stdin.flush()  # 把输入的命令强制输出
+        return
+
+    def get_answer(self):
+        # line = self.p.stdout.readline().decode("GBK")
+        line = str(self.p.stdout.readline().decode("GBK").strip())
+        print(">>> ", line)
+        while not line.startswith("MESS"):
+            line = str(self.p.stdout.readline().decode("GBK").strip())
+            # line = self.p.stdout.readline().decode("GBK").strip()
+            print(">>>> ", line)
+
+        if not line.startswith("MESS"):
+            x = line.split(",")
+            print("x=", x, line)
+            return int(x[0]), int(x[1])
+
+    def get_action(self, board):
+        try:
+            if board.last_move == -1:
+                # 先走：
+                self.send_command("START 15")
+                self.p.stdout.readline()
+                line = self.p.stdout.readline()
+                print(line.decode("GBK"))
+                time.sleep(2)
+                self.send_command("INFO timeout_turn 1000")  # 每步思考时间：最长1秒，时间越长水平越高。
+                time.sleep(1)
+                self.send_command("BEGIN")
+                x, y = self.get_answer()
+                print("xianzhou: x, y = ", x, y)
+                move = board.location_to_move(x, y)
+
+            else:
+                print("last_move=", board.last_move)
+                x = int(board.last_move/15)
+                y = board.last_move % 15
+                print("x, y: ", x, y)
+
+                if self.first:
+                    print("First start ... ")
+                    time.sleep(2)
+                    self.send_command("START 15")
+                    self.p.stdout.readline()
+                    self.p.stdout.readline()
+                    self.send_command("INFO timeout_turn 1000")  # 每步思考时间：最长1秒，时间越长水平越高。
+                    self.first = False
+
+                self.send_command("TURN %d, %d" % (x, y))
+                x, y = self.get_answer()
+                print("x,y to move = ", x, y)
+                move = board.location_to_move(x, y)
+
+        except Exception as e:
+            move = -1
+        if move == -1 or move not in board.availables:
+            print("invalid move")
+            move = self.get_action(board)
+        return move
+
+    def __str__(self):
+        return "Yixin {}".format(self.player)
 
 
 def run():
@@ -102,9 +186,11 @@ def run():
 
         # human player, input your move in the format: 2,3
         human = Human()
+        yixin = Yixin()
 
         # set start_player=0 for human first
-        game.start_play(human, mcts_player, start_player=round(random.random()), is_shown=1)
+        # game.start_play(human, mcts_player, start_player=round(random.random()), is_shown=1)
+        game.start_play(human, yixin, start_player=round(random.random()), is_shown=1)
 
     except KeyboardInterrupt:
         print('\n\rquit')

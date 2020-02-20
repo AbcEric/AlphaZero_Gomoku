@@ -105,6 +105,8 @@ class MCTS(object):
         c_puct: a number in (0, inf) that controls how quickly exploration
             converges to the maximum-value policy. A higher value means
             relying on the prior more.
+
+            c_puct控制收敛到最大value的速度，值越高，说明更多依赖前一个？
         """
         self._root = TreeNode(None, 1.0)
         self._policy = policy_value_fn
@@ -117,21 +119,25 @@ class MCTS(object):
         State is modified in-place, so a copy must be provided.
         """
         node = self._root
-        while(1):
+        while 1:
             if node.is_leaf():
-
                 break
+
             # Greedily select next move.
             action, node = node.select(self._c_puct)
             state.do_move(action)
 
         action_probs, _ = self._policy(state)
+
         # Check for end of game
         end, winner = state.game_end()
+
         if not end:
             node.expand(action_probs)
+
         # Evaluate the leaf node by random rollout
         leaf_value = self._evaluate_rollout(state)
+
         # Update value and visit count of nodes in this traversal.
         node.update_recursive(-leaf_value)
 
@@ -165,6 +171,7 @@ class MCTS(object):
         for n in range(self._n_playout):
             state_copy = copy.deepcopy(state)
             self._playout(state_copy)
+
         return max(self._root._children.items(),
                    key=lambda act_node: act_node[1]._n_visits)[0]
 

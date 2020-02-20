@@ -251,6 +251,7 @@ class TrainPipeline():
 
         for i in range(n_games):
             # print(current_mcts_player, pure_mcts_player)
+            _logger.debug("开始对战，测试训练模型的水平 ... ")
             winner = self.game.start_play(current_mcts_player,
                                           pure_mcts_player,
                                           start_player=i % 2,           # 轮流先走：
@@ -402,6 +403,11 @@ def gen_moves_from_sgf(sgf_path, refresh=False):
 
 if __name__ == '__main__':
     _logger.info("Training is begining ...")
+
+    num=content_to_order("B[aa];W[ab];B[ba]")
+    print(num)
+    exit(0)
+
     conf = load_config('./conf/train_config.yaml')
 
     # 强制重新生成数据：某些是超时判负，某些是先手双三（禁手判负）

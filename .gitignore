@@ -1,3 +1,6 @@
 *.pyc
 __pycache__/
 .idea/workspace.xml
+.idea/workspace.xml
+.idea/misc.xml
+.idea/AlphaZero_Gomoku.iml
