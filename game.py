@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 import numpy as np
-import logging
+import logging, time, random
 _logger = logging.getLogger(__name__)       # 目的是得到当前文件名
 
 class Board(object):
@@ -17,9 +17,45 @@ class Board(object):
         # board states stored as a dict,
         # key: move as location on the board,
         # value: player as pieces type
-        self.states = {}
+        self.states = {}                                    # 记录当前棋盘的状态，键是位置，值是棋子。如{112:1, 113:2}，代表112这个位置是Player1已经落子。
         self.n_in_row = int(kwargs.get('n_in_row', 5))      # need how many pieces in a row to win，缺省为5
         self.players = [1, 2]                               # player1 and player2
+        self.move_target = []                                    # 模拟走子对象：只走已落子的周围，[+/-4]
+
+    def move_in_rect(self, move, rect):
+        row = int(move/self.width)
+        col = move % self.width
+
+        if row >= rect[1] and row <= rect[0] and col >= rect[2] and col <= rect[3]:
+            # print(row, col, [rect[1], rect[0]], [rect[2], rect[3]])
+            return True
+        else:
+            return False
+
+    def get_move_target(self):
+        # 已走位置：
+        moves = [[int(x / self.width), x % self.width] for x in self.states.keys()]
+        # print("moves=", moves)
+
+        if len(moves) == 0:     # 未走棋
+            top, bottom, left, right = 9, 5, 5, 9
+        else:
+            top = max(np.array(moves)[:, 0])
+            bottom = min(np.array(moves)[:, 0])
+            left = min(np.array(moves)[:, 1])
+            right = max(np.array(moves)[:, 1])
+
+            step = 2
+            top = top+step if top <= self.height-step else self.height
+            bottom = bottom-step if bottom >= step else 0
+            left = left-step if left >= step else 0
+            right = right+step if right <= self.width-step else self.width
+
+        # print(top, bottom, left, right)
+
+        self.move_target = [x for x in self.availables if self.move_in_rect(x, [top, bottom, left, right])]
+
+        return
 
     def init_board(self, start_player=0):
         if self.width < self.n_in_row or self.height < self.n_in_row:
@@ -27,8 +63,8 @@ class Board(object):
 
         self.current_player = self.players[start_player]    # 当前玩家为start player：谁执黑先走，1为玩家，2为对手
         # keep available moves in a list
-        self.availables = list(range(self.width * self.height))
-        self.states = {}
+        self.availables = list(range(self.width * self.height))     # 哪些位置还可以走棋
+        self.states = {}                                            # -1表示当前位置为空
         self.last_move = -1
 
     def move_to_location(self, move):
@@ -79,8 +115,10 @@ class Board(object):
 
         return square_state[:, ::-1, :]
 
+    # 落子：修改board的相关信息
     def do_move(self, move):
         self.states[move] = self.current_player
+        # _logger.info("move=%d, current_player=%d, avai=%s" % (move, self.current_player, self.availables))
         self.availables.remove(move)
         self.current_player = (
             self.players[0] if self.current_player == self.players[1]
@@ -149,11 +187,6 @@ class Game(object):
         print("Player", player1, "with X".rjust(3))
         print("Player", player2, "with O".rjust(3))
         print()
-
-        print("%4s" % ' ', end='')
-        for x in range(width):
-            print("%8d" % x, end=' ')
-
         print('\r\n')
         for i in range(height - 1, -1, -1):         # 倒序：行数从下面开始
             print("%4d" % i, end='')
@@ -161,20 +194,19 @@ class Game(object):
                 loc = i * width + j
                 p = board.states.get(loc, -1)
                 if p == player1:
-                    # print("%8s" % 'X', end=' ')
-                    print("%8s" % '●', end=' ')
+                    print("%2s" % 'X', end=' ')
+                    # print("%8s" % '●', end=' ')
                 elif p == player2:
-                    # print("%8s" % 'O', end=' ')
-                    print("%8s" % '○', end=' ')
+                    print("%2s" % 'O', end=' ')
+                    # print("%8s" % '○', end=' ')
                 else:
-                    print("%8s" % '-', end=' ')
+                    print("%2s" % '-', end=' ')
+            print('')
 
-            print('\r\n')
-
-
-    def yixin_action(self, board, play_steps):
-
-        return 210+len(play_steps)
+        print("%4s" % ' ', end='')
+        for x in range(width):
+            print("%2d" % x, end=' ')
+        print('\r\n')
 
     def start_play(self, player1, player2, start_player=0, is_shown=1):
         """start a game between two players"""
@@ -189,34 +221,45 @@ class Game(object):
 
         # start_player为0和1：为0时为player1先走，1为player2（对手）先走：
         if start_player == 1:
-            _logger.info("player %d starts first ... " % (start_player+1))
+            _logger.debug("player %d starts first ... " % (start_player+1))
             # play_steps.append(-1)
 
-        self.board.init_board(start_player)
+        self.board.init_board(start_player)     #
         p1, p2 = self.board.players             # [1, 2]玩家编号
         player1.set_player_ind(p1)
         player2.set_player_ind(p2)
-        players = {p1: player1, p2: player2}
+        players = {p1: player1, p2: player2}    # 区分self.board.players为[1,2]，这里为两个玩家对象
+
+        # print("players=", players)
 
         if is_shown:
             self.graphic(self.board, player1.player, player2.player)
 
+        _logger.debug("start_player=%d(0为玩家，1为对手) " % (start_player))
+        first_step = True
+
         while True:
+            # 注意：current_player中1为玩家，2为对手
             current_player = self.board.get_current_player()
-            player_in_turn = players[current_player]
-            # print("...：", player_in_turn, self.board)
-            _logger.debug("start_player=%d(0为玩家，1为对手) current_player=%d(1为玩家，2为对手) " % (start_player, current_player))
+            player_in_turn = players[current_player]        # 返回是输入参数的player1还是player2
 
             # 注意：SGF格式为行X列（aa,ab,ac...），而Yixin为列X行(A1,B1,C1...)，二者均是左下角为0,0，二者为转置关系，要转换为SGF方式：
-            # 采用模型给出move：
-
+            # 采用模型与AI对战：双方轮流走棋，对弈步骤都记录在board中。
             move = player_in_turn.get_action(self.board)
+
+            # 如果是player1的第一步: 随机选择，避免每次都112开局。player2的开局不一定112（不再处理）
+            # if first_step and start_player == 0:
+            #     h = random.randint(4, 10)
+            #     w = random.randint(4, 10)
+            #     move = self.board.location_to_move([h, w])
+            #     _logger.debug("player1先走，第一步随机选择：%d(%d,%d)" % (move, h, w))
+            #     first_step = False
 
             # 由Yinxin AI给出move：
             # move = self.yixin_action(self.board, play_steps)
 
             play_steps.append(move)
-            _logger.debug("player %d: %d" % (current_player, move))
+            _logger.debug("player%d: %d" % (current_player, move))
 
             self.board.do_move(move)
 
@@ -233,15 +276,16 @@ class Game(object):
                         _logger.debug("Game end：Tie")
 
                 # 将int列表转换为str列表后，才能用join连接：# players[winner]为"MCTS 1/2"。winner是1或2
+                winner_r = winner
                 if start_player == 1:
                     # 当player2先走时:
                     if winner == 1:
                         # winner为2，对应player2获胜，由于他先走，此时结果相当于1获胜。
-                        winner = 2
+                        winner_r = 2
                     else:
-                        winner = 1
+                        winner_r = 1
 
-                _logger.info("play_steps= %s  winner= %d" % (" ".join(map(str, play_steps)), winner))
+                _logger.warning("{'steps':[%s],'winner':%d,'start_player':%d}" % (",".join(map(str, play_steps)), winner_r, start_player+1))
 
                 return winner
 
@@ -317,11 +361,12 @@ class Game(object):
         """ start a self-play game using a MCTS player, reuse the search tree,
         and store the self-play data: (state, mcts_probs, z) for training
         """
-        # 下棋过程：
+        # 下棋过程：互搏
         self.board.init_board()
         p1, p2 = self.board.players
         states, mcts_probs, current_players = [], [], []
         moves = []          # 记录对弈步骤
+        i = 1
 
         while True:
             # 得到每一步落子：
@@ -329,7 +374,8 @@ class Game(object):
                                                  temp=temp,
                                                  return_prob=1)
             # 判断移动哪一个棋子：
-            # print("move: ", move)
+            _logger.debug("%d - move: %d" % (i, move))
+            i += 1
 
             # store the data
             states.append(self.board.current_state())
@@ -347,10 +393,11 @@ class Game(object):
             if end:
                 # winner from the perspective of the current player of each state
 
-                winners_z = np.zeros(len(current_players))
+                winners_z = np.zeros(len(current_players))      # 平局为0
                 if winner != -1:
                     winners_z[np.array(current_players) == winner] = 1.0
                     winners_z[np.array(current_players) != winner] = -1.0
+
                 # reset MCTS root node
                 player.reset_player()
                 if is_shown:
@@ -359,7 +406,9 @@ class Game(object):
                     else:
                         print("Game end. Tie")
 
-                _logger.info("%d-%s" % (winner, moves))
+                # _logger.info("%d-%s" % (winner, moves))
+
+                _logger.warning("{'steps':[%s],'winner':%d}" % (",".join(map(str, moves)), winner))
 
                 # print("states=", states)
                 # print("mcts_probs=", mcts_probs)

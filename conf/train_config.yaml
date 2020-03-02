@@ -1,3 +1,8 @@
+# 对弈数据
+# play_steps: '67,82,81,95,96,66,98,126,99,113,100,97,115,83,69,70,101,102,85,53,116,114,131,146,130,145,129,143,128,127,132'
+play_steps: '112,113,110,129,125,81,95,80,79,66,106,108,94,64,65,96,140,44,155'
+
+
 # 数据目录
 sgf_dir: '../DATA/Gomoku/sgf_data'
 # AI对弈数据目录
@@ -12,23 +17,24 @@ learn_rate: 0.002
 lr_multiplier: 0.2
 temp: 1.0
 # 每次移动的simulations数
-n_playout: 400
+n_playout: 600
 # TODO: 蒙特卡洛树模拟选择时更多的依靠先验，估值越精确，C就应该偏向深度（越小）
 c_puct: 5
 # 数据集最大量（双端队列长度）
-buffer_size: 10000
+buffer_size: 3000
 batch_size: 512
 # epochs: 8
-epochs: 8
+epochs: 6
+# 一次生成几个数据：
 play_batch_size: 1
 # KL散度
 kl_targ: 0.02
 # 每check_freq次 检测对弈成绩
-check_freq: 1000
+check_freq: 20
 # 检测成绩用的mcts对手的思考深度
-pure_mcts_playout_num: 4000
+pure_mcts_playout_num: 3000
 # 训练多少轮
-game_batch_num: 20000
+game_batch_num: 5000
 
 # 训练日志
 train_logging:
@@ -37,6 +43,9 @@ train_logging:
         simpleFormater:
             format: '%(asctime)s - %(levelname)s - %(name)s[line:%(lineno)d]: %(message)s'
             datefmt: '%Y-%m-%d %H:%M:%S'
+        blankFormater:
+            format: ''
+            datefmt: '%Y-%m-%d %H:%M:%S'
     handlers:
         # 标准输出，只要级别在DEBUG以上就会输出
         console:
@@ -44,12 +53,21 @@ train_logging:
             formatter: simpleFormater
             level: DEBUG
             stream: ext://sys.stdout
+
         # INFO以上，滚动文件，保留20个，每个最大100MB
         info_file_handler:
             class : logging.FileHandler
             formatter: simpleFormater
+            # 记录INFO以上，和控制台是否显示可以不同：
             level: INFO
             filename: ./logs/info.log
+
+        warning_file_handler:
+            class : logging.FileHandler
+            formatter: blankFormater
+            level: WARNING
+            filename: ./logs/steps.log
+
         # ERROR以上
         error_file_handler:
             class : logging.FileHandler
@@ -59,4 +77,4 @@ train_logging:
     root:
         # 在DEBUG及以上，才输出：是否屏幕输出，通过console这个handler来控制
         level: INFO
-        handlers: [console, info_file_handler, error_file_handler]
+        handlers: [console, info_file_handler, warning_file_handler, error_file_handler]

@@ -55,7 +55,10 @@ from mcts_alphaZero import MCTSPlayer
 # from policy_value_net_pytorch import PolicyValueNet           # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet        # Tensorflow
 from policy_value_net_keras import PolicyValueNet               # Keras
-
+from queue import Queue
+import threading
+from subprocess import *
+from mcts_yinxin import monitor_yixin_response, YixinPlayer
 
 class TrainPipeline():
     def __init__(self, conf, init_model=None, best_model="best_policy.model"):
@@ -90,20 +93,12 @@ class TrainPipeline():
             self.policy_value_net = PolicyValueNet(self.board_width,
                                                    self.board_height,
                                                    model_file=init_model)
-            # ADD：用best_policy.model作为对手测评：
-            # self.policy_value_net_best = PolicyValueNet(self.board_width,
-            #                                        self.board_height,
-            #                                        model_file=best_model)
-
         else:
             # start training from a new policy-value net
             self.policy_value_net = PolicyValueNet(self.board_width,
                                                    self.board_height)
-            # ADD:
-            # self.policy_value_net_best = PolicyValueNet(self.board_width,
-            #                                        self.board_height)
 
-        # 用MCTS作为模拟对手：
+        # 用自己训练的MCTS作为模拟对手：注意is_selfplay = 1 !!!
         self.mcts_player = MCTSPlayer(self.policy_value_net.policy_value_fn,
                                       c_puct=self.c_puct,
                                       n_playout=self.n_playout,
@@ -112,8 +107,10 @@ class TrainPipeline():
     def show_mcts(self):
         _logger.info("Game info: %d*%d*%d" % (self.board_width, self.board_height, self.n_in_row))
         _logger.info("pure_mcts_playout_num= %d" % self.pure_mcts_playout_num)
-        _logger.info("best_win_ration= %43f" % self.best_win_ratio)
+        _logger.info("best_win_ration= %4.3f" % self.best_win_ratio)
         _logger.info("play_batch_size= %d" % self.play_batch_size)
+        _logger.info("buffer_size= %d" % self.buffer_size)
+        _logger.info("batch_size= %d" % self.batch_size)
         _logger.info("learn_rate= %4.3f*%4.3f" % (self.learn_rate, self.lr_multiplier))
 
     def get_equi_data(self, play_data):
@@ -138,23 +135,26 @@ class TrainPipeline():
         return extend_data
 
     def collect_selfplay_data(self, n_games=1, train_data=[]):
-        # 生成训练数据：两种方式
-
-        # for i in range(n_games):
-        for i in range(1):      # 暂不支持一次生成多个
-            _logger.debug("use human gomoku, train_data=%s" % train_data)
-
-            winner, play_data = self.game.start_from_train_data(self.mcts_player, train_data, is_shown=0)
-            # winner, play_data = self.game.start_self_play(self.mcts_player, temp=self.temp)
+        # 生成训练数据：三种方式
+        epi_len = 0
+        for i in range(n_games):      # 可一次生成多个：输入train_data也要输入多个，或者改为生成器！
+            if len(train_data) != 0:
+                # 用事先生成数据：
+                winner, play_data = self.game.start_from_train_data(self.mcts_player, train_data[i], is_shown=0)
+            else:
+                # 模型自身对战产生：
+                winner, play_data = self.game.start_self_play(self.mcts_player, temp=self.temp)
 
             play_data = list(play_data)[:]
 
             # 代表模拟该局的总步数，play_data返回数据的每一步包括：4个棋盘矩阵+概率矩阵+胜负（1，-1）
-            self.episode_len = len(play_data)
+            epi_len += len(play_data)
 
             # 数据增强：
             play_data = self.get_equi_data(play_data)               # 总步数变为8倍：
             self.data_buffer.extend(play_data)                      # data_buffer相应增加：
+
+        self.episode_len = epi_len
 
         return
 
@@ -162,7 +162,10 @@ class TrainPipeline():
         # 更新价值网络：评估其预测性能
         # 输入数据为(state, mcts_prob, winner_z)
 
+        # 从buffer中随机选择batch_size个数据，也就是说同一对局的步骤可能被分散到不同的mini_batch中。直到被新的数据冲掉。
+        # 随机选取的目的：每步数据被增广为8步，避免相同的放在一起。
         mini_batch = random.sample(self.data_buffer, self.batch_size)
+
         state_batch = [data[0] for data in mini_batch]          # 即为data_buffer的第1列
         mcts_probs_batch = [data[1] for data in mini_batch]
         winner_batch = [data[2] for data in mini_batch]
@@ -216,82 +219,107 @@ class TrainPipeline():
         Evaluate the trained policy by playing against the pure MCTS player
         Note: this is only for monitoring the progress of training
 
-        player: 0(缺省)采用MCTSplayer作为对手，1为current_policy.model, 2为best_policy.model
+        player: 0(缺省)采用MCTSplayer作为对手，1为Yinxin
         n_playout: 适用于MCTSplayer，用作基准（当>2000时，运行速度慢）
-        训练用自己做对手有问题！每次应对都一样，不断循环，没有改进和提升 .......
+
+        注意：训练用自己做对手有问题！每次应对都一样，不断循环，没有改进和提升 .......
         """
         current_mcts_player = MCTSPlayer(self.policy_value_net.policy_value_fn,
                                          c_puct=self.c_puct,
                                          n_playout=self.n_playout)
 
-        if player:
-            # 或者：与best_model进行PK
-            if player == 1:
-                _logger.info("双手互搏进行测评，AI对手(current_policy.model)的n_playout加大一倍 ...")
-                pure_mcts_player = MCTSPlayer(self.policy_value_net.policy_value_fn,
-                                                 c_puct=self.c_puct,
-                                                 n_playout=self.n_playout*2)
+        if player == 1:
+            _logger.info("采用Yinxin进行测评 ...")
 
-            elif player == 2:
-                _logger.info("双手互搏进行测评，AI对手(best_policy.model) ...")
-                pure_mcts_player = MCTSPlayer(self.policy_value_net_best.policy_value_fn,
-                                             c_puct=self.c_puct,
-                                             n_playout=self.n_playout)
-            else:
-                _logger.info("Unknown player")
-                exit(0)
+            qResponses = Queue()
+            p = Popen('C:/Program Files/Yixin/engine.exe', stdin=PIPE, stdout=PIPE)
+
+            # 注意：get_answer不能写成get_answer()，否则会一直等待get_answer执行完成。
+            # child_thread = threading.Thread(target=yixin.get_answer, args=(qRequests, qResponses))
+            child_thread = threading.Thread(target=monitor_yixin_response, args=(p, qResponses))
+
+            # 程序在主线程结束后，直接退出了，不管子线程是否运行完。
+            child_thread.setDaemon(True)
+            child_thread.start()
+
+            pure_mcts_player = YixinPlayer(p, qResponses, timeout=5)
+
         else:
             _logger.info("采用MCTS模拟进行测评，pure_mcts_playout为: %d" % self.pure_mcts_playout_num)
-            pure_mcts_player = MCTS_Pure(c_puct=5,
-                                     n_playout=self.pure_mcts_playout_num)
-
-        # print(type(pure_mcts_player))
+            pure_mcts_player = MCTS_Pure(c_puct=5, n_playout=self.pure_mcts_playout_num)
 
         win_cnt = defaultdict(int)
 
+        _logger.debug("开始对战，测试训练模型的水平 ... ")
+        timeout = 2
         for i in range(n_games):
-            # print(current_mcts_player, pure_mcts_player)
-            _logger.debug("开始对战，测试训练模型的水平 ... ")
+            if player == 1:
+                if i % 2 == 0:
+                    timeout = timeout * 4
+
+                _logger.debug("%d-%d: Yixin timeout = %d" % (n_games, i+1, timeout))
+                pure_mcts_player = YixinPlayer(p, qResponses, timeout=timeout)
+                # pure_mcts_player.first = True  # 重新开始新的一局：
+
             winner = self.game.start_play(current_mcts_player,
                                           pure_mcts_player,
                                           start_player=i % 2,           # 轮流先走：
                                           is_shown=0)
             win_cnt[winner] += 1
 
-            _logger.info("%d-%d : winner is player %d (start from player %d)" % (n_games, i+1, winner, i%2+1))
+            _logger.info("%d-%d : winner is player%d (start from player%d)" % (n_games, i+1, winner, i%2+1))
 
         win_ratio = 1.0*(win_cnt[1] + 0.5*win_cnt[-1]) / n_games
 
-        _logger.info("num_playouts: %d, win: %d, lose: %d, tie: %d" % (self.pure_mcts_playout_num,
-                win_cnt[1], win_cnt[2], win_cnt[-1]))
+        _logger.info("Win: %d, Lose: %d, Tie: %d" % (win_cnt[1], win_cnt[2], win_cnt[-1]))
 
         return win_ratio
 
     def run(self):
         """run the training pipeline"""
+
         try:
-            # 使用人工棋谱：改到外面去，先去掉结果为-1的对局。
-            train_data = gen_moves_from_sgf(conf["sgf_dir"])
-            random.shuffle(train_data)
+            # 1.使用人工实战SGF棋谱：某些是超时判负，某些是先手双三（禁手判负）
+            # _logger.info("使用人工实战SGF棋谱生产的数据：...")
+            # train_data = gen_moves_from_sgf(conf["sgf_dir"])
+
+            # 2.使用Yixin生成的对弈数据：
+            # _logger.info("使用与Yixin对战生成的数据steps.log ...")
+            # train_data = gen_moves_from_yixin("./logs/steps.log")
+
+            # random.shuffle(train_data)
             # 暂时去掉平局的对局：
-            train_data_without_tie = [[item[0], item[1]] for item in train_data if item[0] != -1]
-            # print(train_data_without_tie[0:10], len(train_data_without_tie))
+            # train_data_without_tie = [[item[0], item[1]] for item in train_data if item[0] != -1]
+            # 增加带平局：
+            # train_data_without_tie = [[0 if item[0] == -1 else item[0], item[1]] for item in train_data]
+            # batch_num = int(len(train_data_without_tie)/self.play_batch_size)
+            # episode_len = [len(x[1]) for x in train_data_without_tie]
+            # _logger.info("len = %d, avg_epi_len = %d, X_train[0] = %s" %
+            #              (len(train_data_without_tie), int(sum(episode_len)/batch_num), train_data_without_tie[0]))
 
-            for i in range(self.game_batch_num):
+            # 3.采用模型自身对战生成训练数据，当棋盘很大时，速度非常慢！
+            train_data = []
+            _logger.info("模型自身互搏生成训练数据 ... ")
+            batch_num = self.game_batch_num
+
+            # for i in range(self.game_batch_num):
+            for i in range(batch_num):
                 # 3-1. 生成训练数据：可一次生成多个，通常play_batch_size为1
-                # 既可用训练好的模型来生成数据（步数越多花费的时间越长），也可用棋谱数据来生成（速度快）。
-                self.collect_selfplay_data(n_games=self.play_batch_size, train_data=train_data_without_tie[i])
-                # episode_len为本局的步数
-                _logger.info("batch %d, episode_len=%02d: " % (i+1, self.episode_len))
+                # self.collect_selfplay_data(n_games=self.play_batch_size,
+                #                 train_data=train_data_without_tie[i*self.play_batch_size:(i+1)*self.play_batch_size])
+                # 需要做相应修改：
+                self.collect_selfplay_data(n_games=self.play_batch_size, train_data=[])
 
-                # data_buffer为数据增强后的总步数，不断加大, 直到10000（？多大合适？），每次从buffer中随机选取512个来训练。
+                _logger.info("batch %d-%d, episode_len=%02d: " % (batch_num, i+1, self.episode_len))
+
+                # data_buffer为数据增强后的总步数，不断加大, 直到10000，每次从buffer中随机选取512个来训练。
+                # 岂不是前面的可能会被多次选择？
                 if len(self.data_buffer) > self.batch_size:
 
                     # 3-2. 策略更新: 根据训练数据，更新策略模型的参数，使得loss减少。当棋谱较大时，更新较慢！
                     loss, entropy = self.policy_update()
-                    # _logger.info("policy_update end, loss=%4.3f" % loss)
 
-                # 3-3. 定期对模型进行评估：policy_evaluate(), 并保存模型参数（只保存参数，文件小！）
+                # 3-3. 定期对模型进行评估：并保存模型参数（只保存参数，文件小！）
                 if (i+1) % self.check_freq == 0:
                     _logger.info("current self-play batch: %d" % (i+1))
 
@@ -299,15 +327,13 @@ class TrainPipeline():
                     self.policy_value_net.save_model('./current_policy.model')
                     _logger.info("保存当前训练模型到：current_policy.model")
 
-                    # 缺省下10盘, 用MCTSplayer做对手：这里用4次，各自先手2次，后手2次。
-                    win_ratio = self.policy_evaluate(n_games=4)
-                    # win_ratio = self.policy_evaluate(n_games=5, player=2)   # 用best_policy.model做对手（没变化？？）
+                    # 缺省下10盘, 用MCTSplayer做对手，先手和后手各一半。
+                    win_ratio = self.policy_evaluate(n_games=2, player=1)
 
                     # 评价后决定是否保存到best_policy模型：
                     if win_ratio > self.best_win_ratio:
                         self.policy_value_net.save_model('./best_policy.model')
                         _logger.info("New best policy(%3.2f>%3.2f), save to best_plicy.model!" % (win_ratio, self.best_win_ratio))
-                        # self.policy_value_net_best = self.policy_value_net
                         self.best_win_ratio = win_ratio
 
                         # 当MCTS被我们训练的AI模型完全打败时，pure MCTS AI就升级到每步使用2000次模拟，以此类推，不断增强，
@@ -317,8 +343,13 @@ class TrainPipeline():
                             self.best_win_ratio = 0.0                   # 从0开始
                             _logger.info("pure_mcts_playout increase to %d" % self.pure_mcts_playout_num)
 
+            # 结束时保存到当前模型：
+            self.policy_value_net.save_model('./current_policy.model')
+            _logger.info("训练结束，保存当前训练模型到：current_policy.model")
+
         except KeyboardInterrupt:
             _logger.error('quit')
+
 
 def content_to_order(sequence):
     # 棋谱字母转整型数字
@@ -390,8 +421,6 @@ def gen_moves_from_sgf(sgf_path, refresh=False):
             else:
                 winner = -1
 
-
-
             # 检查是否需要copy.deepcopy(xxx)？前面已经重新赋值！
             result.append([winner, seq_num_list])
             fw.write(str([winner, seq_num_list]))
@@ -401,29 +430,44 @@ def gen_moves_from_sgf(sgf_path, refresh=False):
     fw.close()
     return result
 
+def gen_moves_from_yixin(yixin_file, refresh=False):
+    fp = open(yixin_file, "r")
+    result = []
+    while 1:
+        line = fp.readline().strip()
+        # {'steps': [112, 97, 125, 128, 156, 98, 143, 113, 99, 129, 81, 130, 131, 114, 146, 100, 86, 83, 68, 145, 161,
+        # 115, 85, 160], 'winner': 2, 'start_player': 2}
+        if len(line) > 0:
+            step = eval(line)["steps"]
+            winner = eval(line)["winner"]
+            # 平局暂时不添加：
+            if winner != -1:
+                result.append(step)
+        else:
+            break
+
+    # 去掉重复的对局：
+    no_dup = np.unique(result)
+    result = list(map(lambda x: [2 - len(x) % 2, x], no_dup))
+    _logger.info("Yixin steps.log totol_len = %d" % len(result))
+
+    return result
+
+
 if __name__ == '__main__':
     _logger.info("Training is begining ...")
 
-    num=content_to_order("B[aa];W[ab];B[ba]")
-    print(num)
-    exit(0)
-
     conf = load_config('./conf/train_config.yaml')
-
-    # 强制重新生成数据：某些是超时判负，某些是先手双三（禁手判负）
-    # train_data = gen_moves_from_sgf(conf["sgf_dir"], refresh=True)
 
     training_pipeline = TrainPipeline(conf, init_model="current_policy.model")
     # training_pipeline = TrainPipeline(conf, init_model=None)      # 首次训练
+    training_pipeline.show_mcts()               # 显示信息
 
-    # 记录最后一次的：lr_multiplier, learn_rate, best_win_ratio等
-    # _logger能否修改配置文件？
-    training_pipeline.show_mcts()               # 增加过程显示，或者记录模拟过程！
-
-    # training_pipeline.pure_mcts_playout_num = 2000                # 修改MCTS模拟深度
-    # training_pipeline.policy_evaluate(n_games=2, player=0)       # 用MCTS作为测试基准: current_policy.model(400) vs. MCTS(1000) 3000比较好
-    # training_pipeline.policy_evaluate(n_games=2, player=1)       # 测试AI模型性能: current_policy.model(400) vs. current_policy.model(800)
-    # training_pipeline.policy_evaluate(n_games=3, player=2)       # 测试AI模型性能: current_policy.model(400) vs. best_policy.model(400)
-    # exit(0)
+    # 模型性能测试：
+    # 1.用MCTS作为测试基准: 模拟深度pure_mcts_playout_num至少要3000，速度很慢！
+    # training_pipeline.pure_mcts_playout_num = 2000
+    # training_pipeline.policy_evaluate(n_games=2, player=0)
+    # 2.与Yinxin对战：可用于棋谱生成(注意：结果可能会完全相同)
+    # training_pipeline.policy_evaluate(n_games=10, player=1)
 
     training_pipeline.run()                     # 开始训练

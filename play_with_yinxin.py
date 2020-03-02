@@ -10,8 +10,7 @@ import time, string
 import threading
 
 # shell=True,  bufsize=10
-p = Popen('/Program Files/Yixin/engine.exe', stdin=PIPE, stdout=PIPE)
-
+p = Popen('C:/Program Files/Yixin/engine.exe', stdin=PIPE, stdout=PIPE)
 
 # 接收返回结果的线程：
 def get_yixin_answer():
@@ -22,11 +21,8 @@ def get_yixin_answer():
             break
         print(">>>>>>", line)
         if not line.startswith("MESS"):
-            print("not MESS")
-        else:
-            print("MESS")
-
-
+            # print("not MESS")
+            pass
     print("look up!!! EXIT ===")    # 跳出
 
 
@@ -46,29 +42,20 @@ w = threading.Thread(target=get_yixin_answer)
 w.start()
 
 # cmd = "START 15\r\n"                  # 必须要有，代表一行的命令结束。
+# send_command("info nbestsym 2")
 send_command("START 15")
-time.sleep(2)
-print("start 15 end ...")
 send_command("INFO timeout_turn 1000")  # 每步思考时间：最长1秒，时间越长水平越高。
-time.sleep(2)
-print("info end ...")
+# send_command("yxblock 7, 7")
+# send_command("done")
 
+# print("NOW begin")
 # send_command("BEGIN")
-#
-send_command("TURN 8, 8")
-time.sleep(2)
-print("turn end ...")
 
+send_command("TURN 10, 9")
+send_command("TURN 7, 7")
 
-
-while 1:
-    s = input("Please input: ")
-    print(s)
-    send_command("TURN " + s)
-
-
-# for line in iter(subp.stdout.readline, ''):
-# for line in iter(subp.stdout.read()):
-#     print("..")
-#     print(line, end='')
+# send_command("TAKEBACK 7, 8")
+# send_command("TAKEBACK 7, 7")
+# send_command("TURN 7, 7")
+# send_command("TURN 8, 9")
 
